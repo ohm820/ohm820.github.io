@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกมตารางธาตุ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+        }
+
+        .page {
+            display: none;
+            /* ซ่อนทุกหน้าเป็นค่าเริ่มต้น */
+        }
+
+        .page.active {
+            display: block;
+            /* แสดงเฉพาะหน้าที่ active */
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: white;
+            transition: all 300ms;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(0);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, #06b6d4, #2563eb);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(to right, #22d3ee, #3b82f6);
+            box-shadow: 0 10px 15px rgba(34, 211, 238, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(to right, #22c55e, #059669);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(to right, #4ade80, #10b981);
+            box-shadow: 0 10px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(to right, #ef4444, #e11d48);
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(to right, #f87171, #f43f5e);
+            box-shadow: 0 10px 15px rgba(244, 63, 94, 0.3);
+        }
+
+        .btn-gray {
+            background-color: #4b5563;
+        }
+
+        .btn-gray:hover {
+            background-color: #6b7280;
+            box-shadow: 0 10px 15px rgba(107, 114, 128, 0.3);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 1.125rem;
+            color: #e6f9ff;
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 0.5rem;
+        }
+
+        input[type="text"]::placeholder,
+        input[type="number"]::placeholder,
+        select::placeholder {
+            color: #9ca3af;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #06b6d4;
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+        }
+
+        /* Improved number input styling */
+        input[type="number"] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+            text-align: center;
+            color: #22d3ee; /* Primary requested color */
+            background: linear-gradient(135deg, rgba(34,211,238,0.06), rgba(255,255,255,0.01));
+            border: 1px solid rgba(34,211,238,0.16);
+            box-shadow: 0 6px 18px rgba(2,6,23,0.6), inset 0 -2px 0 rgba(0,0,0,0.25);
+            padding: 0.5rem 0.75rem;
+            font-weight: 600;
+            font-size: 1.0625rem; /* ~17px */
+            border-radius: 0.5rem;
+            min-width: 6rem;
+        }
+
+        /* Hide native spin buttons for cleaner look */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        /* Firefox appearance handled via the rule above */
+
+        /* Fix สี select ให้อยู่ใน dark mode */
+        select {
+            color-scheme: dark;
+        }
+
+        /* Style dynamic text-answer input (used in answerArea) */
+        #text-answer {
+            text-align: center;
+            color: #22d3ee; /* match requested cyan */
+            background: linear-gradient(135deg, rgba(34,211,238,0.04), rgba(255,255,255,0.01));
+            border: 1px solid rgba(34,211,238,0.12);
+            box-shadow: 0 4px 12px rgba(2,6,23,0.5);
+            padding: 0.5rem 0.75rem;
+            font-weight: 600;
+            font-size: 1.0625rem;
+            border-radius: 0.5rem;
+        }
+
+        #text-answer::placeholder {
+            color: rgba(34,211,238,0.5);
+            opacity: 1;
+        }
+
+        /* Style split input fields for category 1 (group and period) */
+        #text-answer-group,
+        #text-answer-period {
+            text-align: center;
+            color: #22d3ee;
+            background: linear-gradient(135deg, rgba(34,211,238,0.06), rgba(255,255,255,0.01));
+            border: 1px solid rgba(34,211,238,0.16);
+            box-shadow: 0 6px 18px rgba(2,6,23,0.6), inset 0 -2px 0 rgba(0,0,0,0.25);
+            padding: 0.5rem 0.75rem;
+            font-weight: 600;
+            font-size: 1.0625rem;
+            border-radius: 0.5rem;
+            min-width: 5rem;
+        }
+
+        #text-answer-group::placeholder,
+        #text-answer-period::placeholder {
+            color: rgba(34,211,238,0.5);
+            opacity: 1;
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div
+        class="w-full max-w-2xl bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl shadow-cyan-500/20 border border-gray-700 p-6 sm:p-10">
+        <h1 id="main-title" class="text-3xl sm:text-4xl font-bold text-center text-cyan-400 mb-8 text-glow">เกมตารางธาตุ
+        </h1>
+
+        <!-- Page 1: Home -->
+        <div id="page-home" class="page active space-y-6">
+            <h2 class="text-2xl font-semibold text-center mb-6">ยินดีต้อนรับ</h2>
+
+            <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-4 shadow-inner">
+                <button onclick="showPage('page-game-settings-category')" class="btn btn-primary">เริ่มเกม</button>
+            </div>
+        </div>
+
+        <!-- Page 2: Category -->
+        <div id="page-game-settings-category" class="page space-y-5">
+            <h2 class="text-2xl font-semibold text-center mb-6">เลือกหมวดหมู่คำถาม</h2>
+
+            <div class="space-y-4">
+                <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-2 shadow-inner">
+                    <button onclick="selectSetting('category', 1)" class="btn btn-gray">1. สัญลักษณ์ ->
+                        บอกหมู่/คาบ</button>
+                </div>
+                <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-2 shadow-inner">
+                    <button onclick="selectSetting('category', 2)" class="btn btn-gray">2. สัญลักษณ์ ->
+                        บอกเลขอะตอม</button>
+                </div>
+                <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-2 shadow-inner">
+                    <button onclick="selectSetting('category', 3)" class="btn btn-gray">3. สัญลักษณ์ -> บอกเลขมวล
+                        (ปัด)</button>
+                </div>
+                <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-2 shadow-inner">
+                    <button onclick="selectSetting('category', 4)" class="btn btn-gray">4. สุ่มคำถาม (โปรตอน, e-, n,
+                        etc.)</button>
+                </div>
+                <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-2 shadow-inner">
+                    <button onclick="selectSetting('category', 5)" class="btn btn-gray">5. สารประกอบ ->
+                        บอกมวลโมเลกุล</button>
+                </div>
+            </div>
+
+            <button onclick="showPage('page-home')" class="btn btn-danger mt-3">กลับ</button>
+        </div>
+
+        <!-- Page 3: Answer Type -->
+        <div id="page-game-settings-answer-type" class="page space-y-5">
+            <h2 class="text-2xl font-semibold text-center mb-6">เลือกวิธีการตอบ</h2>
+
+            <div class="space-y-4">
+                <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-2 shadow-inner">
+                    <button onclick="selectSetting('answerType', 'text')" class="btn btn-gray">แบบพิมพ์ตอบ</button>
+                </div>
+                <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-2 shadow-inner">
+                    <button onclick="selectSetting('answerType', 'choice-5')" class="btn btn-gray">แบบเลือก 5
+                        ตัวเลือก</button>
+                </div>
+                <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-2 shadow-inner">
+                    <button onclick="selectSetting('answerType', 'choice-10')" class="btn btn-gray">แบบเลือก 10
+                        ตัวเลือก</button>
+                </div>
+            </div>
+
+            <button onclick="showPage('page-game-settings-category')" class="btn btn-danger mt-3">กลับ</button>
+        </div>
+
+        <!-- Page 4: Num Questions -->
+        <div id="page-game-settings-num-questions" class="page space-y-6">
+            <h2 class="text-2xl font-semibold text-center mb-6">เลือกจำนวนข้อ</h2>
+
+            <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-4 shadow-inner space-y-3">
+                <label for="input-num-questions" classs="block text-lg text-center">ระบุจำนวนข้อ (1-50):</label>
+                <input type="number" id="input-num-questions" min="1" max="50" value="10" class="text-center">
+            </div>
+
+            <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-2 shadow-inner">
+                <button onclick="selectNumQuestions()" class="btn btn-secondary">เริ่มเกม</button>
+            </div>
+
+            <button onclick="showPage('page-game-settings-answer-type')" class="btn btn-danger mt-3">กลับ</button>
+        </div>
+
+        <!-- Page: Game Play -->
+        <div id="page-game-play" class="page space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-semibold">คำถามข้อที่ <span id="question-number">1</span> / <span
+                        id="question-total">10</span></h2>
+            </div>
+
+            <div
+                class="bg-gray-900 p-6 rounded-lg min-h-[150px] flex items-center justify-center border border-gray-700">
+                <p id="question-text" class="text-2xl sm:text-3xl font-bold text-center"></p>
+            </div>
+
+            <div id="answer-area" class="space-y-3">
+                <!-- Answer options (input or buttons) generated by JS -->
+            </div>
+
+            <div id="feedback-area" class="text-center text-lg h-6"></div>
+
+            <button id="submit-answer-button" onclick="submitAnswer()" class="btn btn-primary">ส่งคำตอบ</button>
+
+            <button onclick="endGameEarly()" class="btn btn-danger mt-4">จบเกม</button>
+        </div>
+
+        <!-- Page: Game Score -->
+        <div id="page-game-score" class="page space-y-6 text-center">
+            <h2 class="text-3xl font-semibold mb-6">สรุปผล</h2>
+            <p class="text-5xl font-bold text-cyan-400"><span id="score-final">0</span> / <span
+                    id="score-total">0</span></p>
+            <p class="text-xl" id="score-percentage">(0%)</p>
+
+            <button onclick="showPage('page-home'); resetGame();" class="btn btn-primary mt-8">กลับหน้าแรก</button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- ELEMENT DATA (หมู่ A) ---
+        const ELEMENTS_A = {
+            'H': { name: 'Hydrogen', atomicNumber: 1, mass: 1, group: 1, period: 1, config: '1s¹' },
+            'Li': { name: 'Lithium', atomicNumber: 3, mass: 7, group: 1, period: 2, config: '[He] 2s¹' },
+            'Na': { name: 'Sodium', atomicNumber: 11, mass: 23, group: 1, period: 3, config: '[Ne] 3s¹' },
+            'K': { name: 'Potassium', atomicNumber: 19, mass: 39, group: 1, period: 4, config: '[Ar] 4s¹' },
+            'Rb': { name: 'Rubidium', atomicNumber: 37, mass: 85, group: 1, period: 5, config: '[Kr] 5s¹' },
+            'Cs': { name: 'Caesium', atomicNumber: 55, mass: 133, group: 1, period: 6, config: '[Xe] 6s¹' },
+            'Fr': { name: 'Francium', atomicNumber: 87, mass: 223, group: 1, period: 7, config: '[Rn] 7s¹' },
+            'Be': { name: 'Beryllium', atomicNumber: 4, mass: 9, group: 2, period: 2, config: '[He] 2s²' },
+            'Mg': { name: 'Magnesium', atomicNumber: 12, mass: 24, group: 2, period: 3, config: '[Ne] 3s²' },
+            'Ca': { name: 'Calcium', atomicNumber: 20, mass: 40, group: 2, period: 4, config: '[Ar] 4s²' },
+            'Sr': { name: 'Strontium', atomicNumber: 38, mass: 88, group: 2, period: 5, config: '[Kr] 5s²' },
+            'Ba': { name: 'Barium', atomicNumber: 56, mass: 137, group: 2, period: 6, config: '[Xe] 6s²' },
+            'Ra': { name: 'Radium', atomicNumber: 88, mass: 226, group: 2, period: 7, config: '[Rn] 7s²' },
+            'B': { name: 'Boron', atomicNumber: 5, mass: 11, group: 13, period: 2, config: '[He] 2s² 2p¹' },
+            'Al': { name: 'Aluminium', atomicNumber: 13, mass: 27, group: 13, period: 3, config: '[Ne] 3s² 3p¹' },
+            'Ga': { name: 'Gallium', atomicNumber: 31, mass: 70, group: 13, period: 4, config: '[Ar] 3d¹⁰ 4s² 4p¹' },
+            'In': { name: 'Indium', atomicNumber: 49, mass: 115, group: 13, period: 5, config: '[Kr] 4d¹⁰ 5s² 5p¹' },
+            'Tl': { name: 'Thallium', atomicNumber: 81, mass: 204, group: 13, period: 6, config: '[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹' },
+            'C': { name: 'Carbon', atomicNumber: 6, mass: 12, group: 14, period: 2, config: '[He] 2s² 2p²' },
+            'Si': { name: 'Silicon', atomicNumber: 14, mass: 28, group: 14, period: 3, config: '[Ne] 3s² 3p²' },
+            'Ge': { name: 'Germanium', atomicNumber: 32, mass: 73, group: 14, period: 4, config: '[Ar] 3d¹⁰ 4s² 4p²' },
+            'Sn': { name: 'Tin', atomicNumber: 50, mass: 119, group: 14, period: 5, config: '[Kr] 4d¹⁰ 5s² 5p²' },
+            'Pb': { name: 'Lead', atomicNumber: 82, mass: 207, group: 14, period: 6, config: '[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²' },
+            'N': { name: 'Nitrogen', atomicNumber: 7, mass: 14, group: 15, period: 2, config: '[He] 2s² 2p³' },
+            'P': { name: 'Phosphorus', atomicNumber: 15, mass: 31, group: 15, period: 3, config: '[Ne] 3s² 3p³' },
+            'As': { name: 'Arsenic', atomicNumber: 33, mass: 75, group: 15, period: 4, config: '[Ar] 3d¹⁰ 4s² 4p³' },
+            'Sb': { name: 'Antimony', atomicNumber: 51, mass: 122, group: 15, period: 5, config: '[Kr] 4d¹⁰ 5s² 5p³' },
+            'Bi': { name: 'Bismuth', atomicNumber: 83, mass: 209, group: 15, period: 6, config: '[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³' },
+            'O': { name: 'Oxygen', atomicNumber: 8, mass: 16, group: 16, period: 2, config: '[He] 2s² 2p⁴' },
+            'S': { name: 'Sulfur', atomicNumber: 16, mass: 32, group: 16, period: 3, config: '[Ne] 3s² 3p⁴' },
+            'Se': { name: 'Selenium', atomicNumber: 34, mass: 79, group: 16, period: 4, config: '[Ar] 3d¹⁰ 4s² 4p⁴' },
+            'Te': { name: 'Tellurium', atomicNumber: 52, mass: 128, group: 16, period: 5, config: '[Kr] 4d¹⁰ 5s² 5p⁴' },
+            'Po': { name: 'Polonium', atomicNumber: 84, mass: 209, group: 16, period: 6, config: '[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴' },
+            'F': { name: 'Fluorine', atomicNumber: 9, mass: 19, group: 17, period: 2, config: '[He] 2s² 2p⁵' },
+            'Cl': { name: 'Chlorine', atomicNumber: 17, mass: 35, group: 17, period: 3, config: '[Ne] 3s² 3p⁵' },
+            'Br': { name: 'Bromine', atomicNumber: 35, mass: 80, group: 17, period: 4, config: '[Ar] 3d¹⁰ 4s² 4p⁵' },
+            'I': { name: 'Iodine', atomicNumber: 53, mass: 127, group: 17, period: 5, config: '[Kr] 4d¹⁰ 5s² 5p⁵' },
+            'At': { name: 'Astatine', atomicNumber: 85, mass: 210, group: 17, period: 6, config: '[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁵' },
+            'He': { name: 'Helium', atomicNumber: 2, mass: 4, group: 18, period: 1, config: '1s²' },
+            'Ne': { name: 'Neon', atomicNumber: 10, mass: 20, group: 18, period: 2, config: '[He] 2s² 2p⁶' },
+            'Ar': { name: 'Argon', atomicNumber: 18, mass: 40, group: 18, period: 3, config: '[Ne] 3s² 3p⁶' },
+            'Kr': { name: 'Krypton', atomicNumber: 36, mass: 84, group: 18, period: 4, config: '[Ar] 3d¹⁰ 4s² 4p⁶' },
+            'Xe': { name: 'Xenon', atomicNumber: 54, mass: 131, group: 18, period: 5, config: '[Kr] 4d¹⁰ 5s² 5p⁶' },
+            'Rn': { name: 'Radon', atomicNumber: 86, mass: 222, group: 18, period: 6, config: '[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶' },
+        };
+        const ELEMENT_SYMBOLS = Object.keys(ELEMENTS_A);
+
+        const CATIONS = {
+            'H': 1, 'Li': 1, 'Na': 1, 'K': 1, 'Rb': 1, 'Cs': 1,
+            'Be': 2, 'Mg': 2, 'Ca': 2, 'Sr': 2, 'Ba': 2,
+            'B': 3, 'Al': 3, 'Ga': 3
+        };
+        const ANIONS = {
+            'F': 1, 'Cl': 1, 'Br': 1, 'I': 1,
+            'O': 2, 'S': 2, 'Se': 2,
+            'N': 3, 'P': 3, 'As': 3
+        };
+        const CATION_SYMBOLS = Object.keys(CATIONS);
+        const ANION_SYMBOLS = Object.keys(ANIONS);
+
+        const COMPOUNDS = {
+            'H₂O': 18, 'CO₂': 44, 'NaCl': 58, 'NH₃': 17, 'CH₄': 16,
+            'C₆H₁₂O₆': 180, 'MgCl₂': 94, 'Al₂O₃': 102, 'CaCO₃': 100,
+            'KNO₃': 101, 'H₂SO₄': 98, 'NaOH': 40,
+            'SO₂': 64, 'SO₃': 80, 'HNO₃': 63, 'HCl': 36,
+            'Ca(OH)₂': 74, 'C₂H₅OH': 46, 'CH₃COOH': 60, 'SiO₂': 60,
+            'N₂O₄': 92, 'K₂O': 94, 'Mg₃N₂': 100, 'BeF₂': 47
+        };
+        const COMPOUND_FORMULAS = Object.keys(COMPOUNDS);
+
+        // --- GLOBAL STATE ---
+        let currentPage = 'page-home';
+        let gameSettings = {
+            category: null,
+            answerType: null,
+            numQuestions: 10
+        };
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function gcd(a, b) {
+            return b ? gcd(b, a % b) : a;
+        }
+
+        function getGroupLabel(groupNumber) {
+            const groupMap = {
+                1: '1A',
+                2: '2A',
+                13: '3A',
+                14: '4A',
+                15: '5A',
+                16: '6A',
+                17: '7A',
+                18: '8A'
+            };
+            return groupMap[groupNumber] || groupNumber.toString();
+        }
+
+        function generateQuestions() {
+            questions = [];
+            const num = gameSettings.numQuestions;
+            const category = gameSettings.category;
+
+            let symbolsPool = shuffleArray([...ELEMENT_SYMBOLS]);
+
+            for (let i = 0; i < num; i++) {
+                const symbol = symbolsPool[i % symbolsPool.length];
+                const element = ELEMENTS_A[symbol];
+                let questionText = '';
+                let answer = '';
+                let options = [];
+
+                switch (category) {
+                    case 1:
+                        questionText = `ธาตุ ${symbol} อยู่หมู่ใด, คาบใด?`;
+                        answer = `หมู่ ${getGroupLabel(element.group)}, คาบ ${element.period}`;
+                        options = [answer];
+                        while (options.length < 10) {
+                            const randEl = ELEMENTS_A[symbolsPool[Math.floor(Math.random() * symbolsPool.length)]];
+                            const wrongAnswer = `หมู่ ${getGroupLabel(randEl.group)}, คาบ ${randEl.period}`;
+                            if (!options.includes(wrongAnswer)) {
+                                options.push(wrongAnswer);
+                            }
+                        }
+                        break;
+                    case 2:
+                        questionText = `ธาตุ ${symbol} มีเลขอะตอมเท่าใด?`;
+                        answer = element.atomicNumber.toString();
+                        options = [answer];
+                        let attempts2 = 0;
+                        while (options.length < 10 && attempts2 < 100) {
+                            const wrongAnswer = (element.atomicNumber + Math.floor(Math.random() * 10) - 5).toString();
+                            if (wrongAnswer !== answer && wrongAnswer > 0 && !options.includes(wrongAnswer)) {
+                                options.push(wrongAnswer);
+                            }
+                            attempts2++;
+                        }
+                        break;
+                    case 3:
+                        questionText = `ธาตุ ${symbol} มีเลขมวล (ปัดเศษ) เท่าใด?`;
+                        answer = element.mass.toString();
+                        options = [answer];
+                        let attempts3 = 0;
+                        while (options.length < 10 && attempts3 < 100) {
+                            const wrongAnswer = (element.mass + Math.floor(Math.random() * 10) - 5).toString();
+                            if (wrongAnswer !== answer && wrongAnswer > 0 && !options.includes(wrongAnswer)) {
+                                options.push(wrongAnswer);
+                            }
+                            attempts3++;
+                        }
+                        break;
+                    case 4:
+                        const subType = Math.floor(Math.random() * 4);
+                        if (subType === 0) {
+                            questionText = `อะตอมที่เป็นกลางของธาตุ ${symbol} มีโปรตอนกี่อนุภาค?`;
+                            answer = element.atomicNumber.toString();
+                        } else if (subType === 1) {
+                            questionText = `อะตอมที่เป็นกลางของธาตุ ${symbol} มีอิเล็กตรอนกี่อนุภาค?`;
+                            answer = element.atomicNumber.toString();
+                        } else if (subType === 2) {
+                            questionText = `ธาตุ ${symbol} (เลขมวล ${element.mass}) มีนิวตรอนกี่อนุภาค?`;
+                            answer = (element.mass - element.atomicNumber).toString();
+                        } else {
+                            questionText = `ธาตุ ${symbol} มีการจัดเรียงอิเล็กตรอน (แบบย่อ) อย่างไร?`;
+                            answer = element.config;
+                        }
+
+                        if (subType < 3) {
+                            options = [answer];
+                            let attempts4a = 0;
+                            while (options.length < 10 && attempts4a < 100) {
+                                const wrongAnswer = (parseInt(answer) + Math.floor(Math.random() * 6) - 3).toString();
+                                if (wrongAnswer !== answer && wrongAnswer >= 0 && !options.includes(wrongAnswer)) {
+                                    options.push(wrongAnswer);
+                                }
+                                attempts4a++;
+                            }
+                        } else {
+                            options = [answer];
+                            let attempts4b = 0;
+                            while (options.length < 10 && attempts4b < 100) {
+                                const randEl = ELEMENTS_A[symbolsPool[Math.floor(Math.random() * symbolsPool.length)]];
+                                const wrongAnswer = randEl.config;
+                                if (!options.includes(wrongAnswer)) {
+                                    options.push(wrongAnswer);
+                                }
+                                attempts4b++;
+                            }
+                        }
+                        break;
+                    case 5:
+                        if (i < COMPOUND_FORMULAS.length) {
+                            const formula = COMPOUND_FORMULAS[i % COMPOUND_FORMULAS.length];
+                            questionText = `จงหามวลโมเลกุลของ ${formula}`;
+                            answer = COMPOUNDS[formula].toString();
+                        }
+                        else {
+                            const cSymbol = CATION_SYMBOLS[Math.floor(Math.random() * CATION_SYMBOLS.length)];
+                            const aSymbol = ANION_SYMBOLS[Math.floor(Math.random() * ANION_SYMBOLS.length)];
+
+                            const cEl = ELEMENTS_A[cSymbol];
+                            const aEl = ELEMENTS_A[aSymbol];
+
+                            const cCharge = CATIONS[cSymbol];
+                            const aCharge = ANIONS[aSymbol];
+
+                            const commonDivisor = gcd(cCharge, aCharge);
+                            const cSub = aCharge / commonDivisor;
+                            const aSub = cCharge / commonDivisor;
+
+                            const cSubStr = cSub > 1 ? `_${cSub}` : '';
+                            const aSubStr = aSub > 1 ? `_${aSub}` : '';
+
+                            const formula = `${cSymbol}${cSubStr}${aSymbol}${aSubStr}`;
+                            const mass = (cEl.mass * cSub) + (aEl.mass * aSub);
+
+                            if (formula.includes('subscript')) {
+                                questionText = `จงหามวลโมเลกุลของ ${formula.replace(/_(\d+)/g, '<sub>$1</sub>')}`;
+                            } else {
+                                questionText = `จงหามวลโมเลกุลของ ${formula.replace(/_(\d+)/g, '<sub>$1</sub>')}`;
+                            }
+                            answer = mass.toString();
+                        }
+
+                        options = [answer];
+                        while (options.length < 10) {
+                            const wrongAnswer = (parseInt(answer) + Math.floor(Math.random() * 20) - 10).toString();
+                            if (wrongAnswer !== answer && wrongAnswer > 0 && !options.includes(wrongAnswer)) {
+                                options.push(wrongAnswer);
+                            }
+                        }
+                        break;
+                }
+
+                shuffleArray(options);
+                questions.push({ questionText, answer, options });
+            }
+        }
+
+        // --- UI/PAGE NAVIGATION ---
+
+        window.showPage = function (pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            currentPage = pageId;
+
+            // ปรับ Title
+            const titles = {
+                'page-home': 'เกมตารางธาตุ',
+                'page-game-settings-category': 'เลือกหมวดหมู่',
+                'page-game-settings-answer-type': 'เลือกวิธีตอบ',
+                'page-game-settings-num-questions': 'เลือกจำนวนข้อ',
+                'page-game-play': 'กำลังเล่นเกม',
+                'page-game-score': 'สรุปผล'
+            };
+            document.getElementById('main-title').textContent = titles[pageId] || 'เกมตารางธาตุ';
+        }
+
+        window.selectSetting = function (key, value) {
+            gameSettings[key] = value;
+            if (key === 'category') {
+                showPage('page-game-settings-answer-type');
+            } else if (key === 'answerType') {
+                showPage('page-game-settings-num-questions');
+            }
+        }
+
+        window.selectNumQuestions = function () {
+            const num = parseInt(document.getElementById('input-num-questions').value);
+            if (num < 1 || num > 50) {
+                alert("กรุณาใส่จำนวนข้อระหว่าง 1 - 50");
+                return;
+            }
+            gameSettings.numQuestions = num;
+            startGame();
+        }
+
+        // --- GAME LOGIC ---
+
+        window.startGame = function () {
+            console.log("Starting game with settings:", gameSettings);
+            currentQuestionIndex = 0;
+            score = 0;
+
+            generateQuestions();
+
+            if (questions.length === 0) {
+                alert("เกิดข้อผิดพลาดในการสร้างคำถาม");
+                showPage('page-home');
+                return;
+            }
+
+            showPage('page-game-play');
+            displayQuestion();
+        }
+
+        window.displayQuestion = function () {
+            if (currentQuestionIndex >= questions.length) {
+                showScore();
+                return;
+            }
+
+            const q = questions[currentQuestionIndex];
+            const qNum = currentQuestionIndex + 1;
+            const qTotal = questions.length;
+
+            document.getElementById('question-number').textContent = qNum;
+            document.getElementById('question-total').textContent = qTotal;
+            document.getElementById('question-text').innerHTML = q.questionText; // ใช้ innerHTML เผื่อมี subscript
+            document.getElementById('feedback-area').textContent = '';
+
+            const answerArea = document.getElementById('answer-area');
+            answerArea.innerHTML = '';
+
+            if (gameSettings.answerType === 'text') {
+                if (gameSettings.category === 1) {
+                    // Category 1: Split input for group and period
+                    answerArea.innerHTML = `
+                        <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-4 shadow-inner space-y-4 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
+                            <label class="text-sm font-semibold text-cyan-300">หมู่:</label>
+                            <input type="text" id="text-answer-group" class="text-center sm:flex-grow" placeholder="เช่น 1A, 2A">
+                            <label class="text-sm font-semibold text-cyan-300">คาบ:</label>
+                            <input type="text" id="text-answer-period" class="text-center sm:flex-grow" placeholder="เช่น 1, 2">
+                            <button onclick="submitAnswer()" class="btn btn-primary sm:flex-shrink-0 sm:w-auto">ส่งคำตอบ</button>
+                        </div>
+                    `;
+                } else {
+                    // Other categories: Single text input
+                    answerArea.innerHTML = `
+                        <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-4 shadow-inner space-y-4 sm:space-y-0 sm:flex sm:items-center sm:space-x-4">
+                            <input type="text" id="text-answer" class="text-center sm:flex-grow" placeholder="พิมพ์คำตอบของคุณ...">
+                            <button onclick="submitAnswer()" class="btn btn-primary sm:flex-shrink-0 sm:w-auto">ส่งคำตอบ</button>
+                        </div>
+                    `;
+                }
+                document.getElementById('submit-answer-button').style.display = 'none';
+            } else {
+                document.getElementById('submit-answer-button').style.display = 'none';
+
+                const numChoices = gameSettings.answerType === 'choice-5' ? 5 : 10;
+                const choices = q.options.slice(0, numChoices);
+
+                if (!choices.includes(q.answer)) {
+                    choices[Math.floor(Math.random() * choices.length)] = q.answer;
+                }
+
+                shuffleArray(choices);
+
+                choices.forEach(choice => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'bg-gray-700/50 border border-gray-600 rounded-lg p-2 shadow-inner';
+
+                    const button = document.createElement('button');
+                    button.textContent = choice;
+                    button.className = 'btn btn-gray';
+                    button.onclick = () => submitAnswer(choice);
+
+                    wrapper.appendChild(button);
+                    answerArea.appendChild(wrapper);
+                });
+            }
+        }
+
+        window.submitAnswer = function (choice = null) {
+            const q = questions[currentQuestionIndex];
+            let userAnswer;
+
+            if (gameSettings.answerType === 'text') {
+                // Check if we have split inputs (category 1)
+                const groupInput = document.getElementById('text-answer-group');
+                const periodInput = document.getElementById('text-answer-period');
+                
+                if (groupInput && periodInput) {
+                    // Category 1: Combine group and period
+                    const userGroup = groupInput.value.trim();
+                    const userPeriod = periodInput.value.trim();
+                    if (!userGroup || !userPeriod) {
+                        alert("กรุณากรอกหมู่และคาบ");
+                        return;
+                    }
+                    userAnswer = `หมู่ ${userGroup}, คาบ ${userPeriod}`;
+                } else {
+                    // Other categories: Single text input
+                    userAnswer = document.getElementById('text-answer').value.trim();
+                    if (!userAnswer) {
+                        alert("กรุณาเลือกหรือพิมพ์คำตอบ");
+                        return;
+                    }
+                }
+            } else {
+                userAnswer = choice;
+            }
+
+            if (!userAnswer) {
+                alert("กรุณาเลือกหรือพิมพ์คำตอบ");
+                return;
+            }
+
+            const feedback = document.getElementById('feedback-area');
+
+            // เปรียบเทียบคำตอบ (ไม่สน case)
+            if (userAnswer.toLowerCase() === q.answer.toLowerCase()) {
+                score++;
+                feedback.textContent = 'ถูกต้อง!';
+                feedback.className = 'text-center text-lg h-6 text-green-400';
+            } else {
+                feedback.textContent = `ผิด! คำตอบคือ: ${q.answer}`;
+                feedback.className = 'text-center text-lg h-6 text-red-400';
+            }
+
+            currentQuestionIndex++;
+            setTimeout(displayQuestion, 1000); // หน่วงเวลา 1 วิ
+        }
+
+        window.showScore = function () {
+            document.getElementById('score-final').textContent = score;
+            document.getElementById('score-total').textContent = gameSettings.numQuestions;
+            const percentage = (score / gameSettings.numQuestions) * 100;
+            document.getElementById('score-percentage').textContent = `(${percentage.toFixed(0)}%)`;
+
+            showPage('page-game-score');
+        }
+
+        window.endGameEarly = function () {
+            showScore();
+        }
+
+        window.resetGame = function () {
+            gameSettings = { category: null, answerType: null, numQuestions: 10 };
+            questions = [];
+            currentQuestionIndex = 0;
+            score = 0;
+        }
+
+        // ผูก function กับ window object
+        window.selectSetting = selectSetting;
+        window.selectNumQuestions = selectNumQuestions;
+        window.startGame = startGame;
+        window.displayQuestion = displayQuestion;
+        window.submitAnswer = submitAnswer;
+        window.showScore = showScore;
+        window.endGameEarly = endGameEarly;
+        window.resetGame = resetGame;
+
+    </script>
+</body>
+
+</html>
