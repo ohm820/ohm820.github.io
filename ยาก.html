@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Kme Hard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ปรับธีมปุ่มเป็นโทนแดง */
+        .btn {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: white;
+            transition: all 300ms;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(255, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            /* สีแดงหลัก */
+            background: linear-gradient(to right, #dc2626, #991b1b);
+        }
+
+        .btn-secondary {
+            /* สีส้ม */
+            background: linear-gradient(to right, #ea580c, #c2410c);
+        }
+
+        .btn-danger {
+            /* สีเทาเข้ม (สำหรับปุ่มกลับ) */
+            background: linear-gradient(to right, #4b5563, #374151);
+        }
+
+        .btn-gold {
+            background: linear-gradient(to right, #fbbf24, #d97706);
+            color: black;
+        }
+
+        .btn-gray {
+            background-color: #1f2937;
+            border: 1px solid #7f1d1d; /* ขอบแดงเข้ม */
+        }
+        .btn-gray:hover {
+            background-color: #7f1d1d;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 1.125rem;
+            color: #ffcccc;
+            background-color: #2a0a0a; /* พื้นหลัง input แดงก่ำ */
+            border: 1px solid #7f1d1d;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        select {
+            text-align-last: center;
+            cursor: pointer;
+        }
+
+        /* ตารางจัดอันดับธีมแดง */
+        .leaderboard-table th {
+            color: #f87171; /* แดงอ่อน */
+        }
+        .leaderboard-table td {
+            border-bottom: 1px solid #450a0a;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white flex items-center justify-center min-h-screen p-4" style="background-image: radial-gradient(circle at center, #3a0505 0%, #000000 100%);">
+
+    <div
+        class="w-full max-w-2xl bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-2xl shadow-red-900/50 border border-red-900 p-6 sm:p-10 relative">
+
+        <div id="timer-display"
+            class="hidden absolute top-4 right-4 bg-red-900/80 border border-red-500 rounded-full px-4 py-1 shadow-lg shadow-red-500/20">
+            <span class="text-white font-mono text-xl font-bold" id="time-remaining">120</span> <span
+                class="text-xs text-red-200">วินาที</span>
+        </div>
+
+        <h1 id="main-title" class="text-3xl sm:text-4xl font-bold text-center text-red-500 mb-8 drop-shadow-[0_0_10px_rgba(220,38,38,0.8)]">Kme<br></h1>
+
+        <div id="page-home" class="page active space-y-6">
+            
+            <div class="bg-red-950/30 border border-red-900 rounded-lg p-4">
+                <button onclick="showPage('page-select-mode')" class="btn btn-primary text-xl py-4">เริ่มเกม</button>
+            </div>
+
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold text-center text-yellow-400 mb-3">🏆 อันดับสูงสุด (Ranked)</h3>
+                <div class="mb-4">
+                    <select id="leaderboard-category-select" onchange="renderLeaderboard()">
+                        <option value="all">-- รวมทุกหมวด --</option>
+                        <option value="1">1. สัญลักษณ์ -> หมู่/คาบ</option>
+                        <option value="2">2. สัญลักษณ์ -> เลขอะตอม</option>
+                        <option value="3">3. สัญลักษณ์ -> เลขมวล</option>
+                        <option value="4">4. สุ่มคำถาม (Proton, etc.)</option>
+                        <option value="5">5. สารประกอบ -> มวลโมเลกุล</option>
+                    </select>
+                </div>
+                <div class="bg-gray-900/50 border border-red-900 rounded-lg p-4 min-h-[200px]">
+                    <div id="leaderboard-loading" class="text-center text-gray-400 py-4">กำลังโหลดข้อมูล...</div>
+                    <div id="leaderboard-empty" class="text-center text-gray-500 py-4 hidden">ไม่มีข้อมูล</div>
+                    <table id="leaderboard-table" class="leaderboard-table hidden w-full text-center">
+                        <thead><tr><th>#</th><th>ชื่อ</th><th>หมวด</th><th>คะแนน</th></tr></thead>
+                        <tbody id="leaderboard-body"></tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-2">
+                    <button onclick="fetchLeaderboard()" class="text-sm text-red-400 underline hover:text-red-300">รีเฟรชอันดับ</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-select-mode" class="page space-y-5">
+            <h2 class="text-2xl font-semibold text-center mb-6 text-red-200">เลือกโหมดการเล่น</h2>
+            <div class="space-y-4">
+                <div class="bg-red-950/20 border border-red-800 rounded-lg p-4 hover:bg-red-900/40 transition cursor-pointer"
+                    onclick="selectMode('normal')">
+                    <h3 class="text-xl font-bold text-red-300 mb-1">โหมดปกติ</h3>
+                    <p class="text-gray-400 text-sm">เล่นเรื่อยๆ ไม่มีเวลาจำกัด</p>
+                </div>
+                <div class="bg-orange-950/20 border border-yellow-600/50 rounded-lg p-4 hover:bg-orange-900/40 transition cursor-pointer relative overflow-hidden"
+                    onclick="selectMode('ranked')">
+                    <div class="absolute top-0 right-0 bg-yellow-600 text-white text-xs px-2 py-1 font-bold">จัดอันดับ</div>
+                    <h3 class="text-xl font-bold text-yellow-400 mb-1">โหมดจัดอันดับ (Ranked)</h3>
+                    <p class="text-gray-400 text-sm">จำกัดเวลา 120 วินาที บันทึกสถิติโลก</p>
+                </div>
+            </div>
+            <button onclick="showPage('page-home')" class="btn btn-danger mt-3">กลับ</button>
+        </div>
+
+        <div id="page-ranked-name" class="page space-y-6">
+            <h2 class="text-2xl font-semibold text-center mb-4 text-orange-400">ประกาศนามผู้กล้า</h2>
+            <div class="bg-red-950/30 border border-orange-500/30 rounded-lg p-6 space-y-4">
+                <input type="text" id="input-ranked-name-field" placeholder="ชื่อของคุณ (Max 10 chars)" maxlength="10" 
+                    class="text-center text-xl font-bold py-3">
+            </div>
+            <button onclick="confirmRankedName()" class="btn btn-gold text-xl">ถัดไป</button>
+            <button onclick="showPage('page-select-mode')" class="btn btn-danger mt-3">กลับ</button>
+        </div>
+
+        <div id="page-game-settings-category" class="page space-y-5">
+            <h2 class="text-2xl font-semibold text-center mb-6 text-red-200">เลือกความท้าทาย</h2>
+            <div class="space-y-4">
+                <button onclick="selectSetting('category', 1)" class="btn btn-gray">1. สัญลักษณ์ -> หมู่/คาบ</button>
+                <button onclick="selectSetting('category', 2)" class="btn btn-gray">2. สัญลักษณ์ -> เลขอะตอม</button>
+                <button onclick="selectSetting('category', 3)" class="btn btn-gray">3. สัญลักษณ์ -> เลขมวล (ปัด)</button>
+                <button onclick="selectSetting('category', 4)" class="btn btn-gray">4. สุ่มคำถาม (โปรตอน, e-, n, จัดเรียง)</button>
+                <button onclick="selectSetting('category', 5)" class="btn btn-gray">5. สารประกอบ -> มวลโมเลกุล (Hard)</button>
+            </div>
+            <button onclick="showPage('page-select-mode')" class="btn btn-danger mt-3">กลับ</button>
+        </div>
+
+        <div id="page-game-settings-answer-type" class="page space-y-5">
+            <h2 class="text-2xl font-semibold text-center mb-6 text-red-200">รูปแบบการตอบ</h2>
+            <div class="space-y-4">
+                <button onclick="selectSetting('answerType', 'text')" class="btn btn-gray">พิมพ์ตอบ</button>
+                <button onclick="selectSetting('answerType', 'choice-5')" class="btn btn-gray">ตัวเลือก 5 ข้อ</button>
+                <button onclick="selectSetting('answerType', 'choice-10')" class="btn btn-gray">ตัวเลือก 10 ข้อ</button>
+            </div>
+            <button onclick="showPage('page-game-settings-category')" class="btn btn-danger mt-3">กลับ</button>
+        </div>
+
+        <div id="page-game-settings-num-questions" class="page space-y-6">
+            <h2 class="text-2xl font-semibold text-center mb-6 text-red-200">จำนวนข้อ</h2>
+            <div class="bg-red-950/30 border border-red-800 rounded-lg p-4">
+                <input type="number" id="input-num-questions" min="1" max="50" value="10" class="text-center">
+            </div>
+            <button onclick="selectNumQuestions()" class="btn btn-secondary text-xl">เริ่มเกม!</button>
+            <button onclick="showPage('page-game-settings-answer-type')" class="btn btn-danger mt-3">กลับ</button>
+        </div>
+
+        <div id="page-game-play" class="page space-y-6">
+            <div class="flex justify-between items-center border-b border-red-900 pb-2">
+                <h2 class="text-xl">Quest <span id="question-number">1</span> <span id="question-total-wrapper" class="text-gray-400">/ <span id="question-total">10</span></span></h2>
+                <div class="text-xl font-bold text-red-400">Score: <span id="current-score-display">0</span></div>
+            </div>
+
+            <div class="bg-black/40 p-6 rounded-lg min-h-[150px] flex items-center justify-center border border-red-800 shadow-[inset_0_0_20px_rgba(127,29,29,0.5)]">
+                <p id="question-text" class="text-2xl sm:text-4xl font-bold text-center text-white"></p>
+            </div>
+
+            <div id="answer-area" class="space-y-3 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+
+            <div id="feedback-area" class="text-center text-lg h-8 font-bold"></div>
+
+            <div class="flex justify-center w-full">
+                <button id="submit-answer-button" onclick="submitAnswer()" class="btn btn-primary sm:w-auto px-10" style="display:none;">ยืนยันคำตอบ</button>
+            </div>
+            <button onclick="endGameEarly()" class="btn btn-danger mt-4 bg-opacity-50 text-sm py-2">ยอมแพ้ / จบเกม</button>
+        </div>
+
+        <div id="page-game-score" class="page space-y-6 text-center">
+            <h2 class="text-3xl font-semibold mb-6 text-red-500">MISSION COMPLETE</h2>
+
+            <div class="bg-red-950/40 p-6 rounded-xl border border-red-800">
+                <p class="text-gray-300 mb-2">คะแนนรวม</p>
+                <p class="text-6xl font-bold text-white mb-4"><span id="score-final">0</span> <span id="score-total-display" class="text-3xl text-gray-500"></span></p>
+                <p class="text-xl text-orange-400" id="score-percentage"></p>
+                <p class="text-sm text-gray-400 mt-2" id="played-category-display"></p>
+            </div>
+
+            <div id="ranked-submit-area" class="hidden space-y-4">
+                <input type="text" id="player-name" disabled class="hidden"> 
+                <button onclick="submitScoreToSheet()" id="btn-submit-score" class="btn btn-gold max-w-xs mx-auto">บันทึกสถิติ</button>
+                <p id="submit-status" class="text-sm text-gray-400 h-6"></p>
+            </div>
+
+            <button onclick="resetGame(); showPage('page-home');" class="btn btn-primary mt-8">กลับหน้าหลัก</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDZL43ZAv5L4tGjfavizqGMGFRTu54itzkCyfs2KsqiqPfMQ_GzPkWHT3rcJYyrr27Nw/exec";
+
+        // --- DATA & GLOBAL VARS ---
+        
+        // 1. ตารางธาตุครบ 118 ตัว (Full 118 Elements)
+        const rawElements = [
+             [1,"H","Hydrogen",1,1,1,"1s¹"], [2,"He","Helium",4,18,1,"1s²"],
+             [3,"Li","Lithium",7,1,2,"[He] 2s¹"], [4,"Be","Beryllium",9,2,2,"[He] 2s²"],
+             [5,"B","Boron",11,13,2,"[He] 2s² 2p¹"], [6,"C","Carbon",12,14,2,"[He] 2s² 2p²"],
+             [7,"N","Nitrogen",14,15,2,"[He] 2s² 2p³"], [8,"O","Oxygen",16,16,2,"[He] 2s² 2p⁴"],
+             [9,"F","Fluorine",19,17,2,"[He] 2s² 2p⁵"], [10,"Ne","Neon",20,18,2,"[He] 2s² 2p⁶"],
+             [11,"Na","Sodium",23,1,3,"[Ne] 3s¹"], [12,"Mg","Magnesium",24,2,3,"[Ne] 3s²"],
+             [13,"Al","Aluminium",27,13,3,"[Ne] 3s² 3p¹"], [14,"Si","Silicon",28,14,3,"[Ne] 3s² 3p²"],
+             [15,"P","Phosphorus",31,15,3,"[Ne] 3s² 3p³"], [16,"S","Sulfur",32,16,3,"[Ne] 3s² 3p⁴"],
+             [17,"Cl","Chlorine",35,17,3,"[Ne] 3s² 3p⁵"], [18,"Ar","Argon",40,18,3,"[Ne] 3s² 3p⁶"],
+             [19,"K","Potassium",39,1,4,"[Ar] 4s¹"], [20,"Ca","Calcium",40,2,4,"[Ar] 4s²"],
+             [21,"Sc","Scandium",45,3,4,"[Ar] 3d¹ 4s²"], [22,"Ti","Titanium",48,4,4,"[Ar] 3d² 4s²"],
+             [23,"V","Vanadium",51,5,4,"[Ar] 3d³ 4s²"], [24,"Cr","Chromium",52,6,4,"[Ar] 3d⁵ 4s¹"],
+             [25,"Mn","Manganese",55,7,4,"[Ar] 3d⁵ 4s²"], [26,"Fe","Iron",56,8,4,"[Ar] 3d⁶ 4s²"],
+             [27,"Co","Cobalt",59,9,4,"[Ar] 3d⁷ 4s²"], [28,"Ni","Nickel",59,10,4,"[Ar] 3d⁸ 4s²"],
+             [29,"Cu","Copper",64,11,4,"[Ar] 3d¹⁰ 4s¹"], [30,"Zn","Zinc",65,12,4,"[Ar] 3d¹⁰ 4s²"],
+             [31,"Ga","Gallium",70,13,4,"...4p¹"], [32,"Ge","Germanium",73,14,4,"...4p²"],
+             [33,"As","Arsenic",75,15,4,"...4p³"], [34,"Se","Selenium",79,16,4,"...4p⁴"],
+             [35,"Br","Bromine",80,17,4,"...4p⁵"], [36,"Kr","Krypton",84,18,4,"...4p⁶"],
+             [37,"Rb","Rubidium",85,1,5,"[Kr] 5s¹"], [38,"Sr","Strontium",88,2,5,"[Kr] 5s²"],
+             [39,"Y","Yttrium",89,3,5,"[Kr] 4d¹ 5s²"], [40,"Zr","Zirconium",91,4,5,"[Kr] 4d² 5s²"],
+             [41,"Nb","Niobium",93,5,5,"[Kr] 4d⁴ 5s¹"], [42,"Mo","Molybdenum",96,6,5,"[Kr] 4d⁵ 5s¹"],
+             [43,"Tc","Technetium",98,7,5,"[Kr] 4d⁵ 5s²"], [44,"Ru","Ruthenium",101,8,5,"[Kr] 4d⁷ 5s¹"],
+             [45,"Rh","Rhodium",103,9,5,"[Kr] 4d⁸ 5s¹"], [46,"Pd","Palladium",106,10,5,"[Kr] 4d¹⁰"],
+             [47,"Ag","Silver",108,11,5,"[Kr] 4d¹⁰ 5s¹"], [48,"Cd","Cadmium",112,12,5,"[Kr] 4d¹⁰ 5s²"],
+             [49,"In","Indium",115,13,5,"...5p¹"], [50,"Sn","Tin",119,14,5,"...5p²"],
+             [51,"Sb","Antimony",122,15,5,"...5p³"], [52,"Te","Tellurium",128,16,5,"...5p⁴"],
+             [53,"I","Iodine",127,17,5,"...5p⁵"], [54,"Xe","Xenon",131,18,5,"...5p⁶"],
+             [55,"Cs","Caesium",133,1,6,"[Xe] 6s¹"], [56,"Ba","Barium",137,2,6,"[Xe] 6s²"],
+             [57,"La","Lanthanum",139,3,6,"[Xe] 5d¹ 6s²"], [72,"Hf","Hafnium",178,4,6,"[Xe] 4f¹⁴ 5d² 6s²"],
+             [73,"Ta","Tantalum",181,5,6,"...5d³ 6s²"], [74,"W","Tungsten",184,6,6,"...5d⁴ 6s²"],
+             [75,"Re","Rhenium",186,7,6,"...5d⁵ 6s²"], [76,"Os","Osmium",190,8,6,"...5d⁶ 6s²"],
+             [77,"Ir","Iridium",192,9,6,"...5d⁷ 6s²"], [78,"Pt","Platinum",195,10,6,"...5d⁹ 6s¹"],
+             [79,"Au","Gold",197,11,6,"...5d¹⁰ 6s¹"], [80,"Hg","Mercury",201,12,6,"...5d¹⁰ 6s²"],
+             [81,"Tl","Thallium",204,13,6,"...6p¹"], [82,"Pb","Lead",207,14,6,"...6p²"],
+             [83,"Bi","Bismuth",209,15,6,"...6p³"], [84,"Po","Polonium",209,16,6,"...6p⁴"],
+             [85,"At","Astatine",210,17,6,"...6p⁵"], [86,"Rn","Radon",222,18,6,"...6p⁶"],
+             [87,"Fr","Francium",223,1,7,"[Rn] 7s¹"], [88,"Ra","Radium",226,2,7,"[Rn] 7s²"],
+             [89,"Ac","Actinium",227,3,7,"[Rn] 6d¹ 7s²"], [104,"Rf","Rutherfordium",267,4,7,"...6d² 7s²"],
+             [105,"Db","Dubnium",268,5,7,"...6d³ 7s²"], [106,"Sg","Seaborgium",269,6,7,"...6d⁴ 7s²"],
+             [107,"Bh","Bohrium",270,7,7,"...6d⁵ 7s²"], [108,"Hs","Hassium",277,8,7,"...6d⁶ 7s²"],
+             [109,"Mt","Meitnerium",278,9,7,"...6d⁷ 7s²"], [110,"Ds","Darmstadtium",281,10,7,"...6d⁸ 7s²"],
+             [111,"Rg","Roentgenium",282,11,7,"...6d⁹ 7s²"], [112,"Cn","Copernicium",285,12,7,"...6d¹⁰ 7s²"],
+             [113,"Nh","Nihonium",286,13,7,"...7p¹"], [114,"Fl","Flerovium",289,14,7,"...7p²"],
+             [115,"Mc","Moscovium",290,15,7,"...7p³"], [116,"Lv","Livermorium",293,16,7,"...7p⁴"],
+             [117,"Ts","Tennessine",294,17,7,"...7p⁵"], [118,"Og","Oganesson",294,18,7,"...7p⁶"],
+             // Lanthanides
+             [58,"Ce","Cerium",140,0,6,"Lanthanide"], [59,"Pr","Praseodymium",141,0,6,"Lanthanide"],
+             [60,"Nd","Neodymium",144,0,6,"Lanthanide"], [92,"U","Uranium",238,0,7,"Actinide"],
+             [94,"Pu","Plutonium",244,0,7,"Actinide"]
+        ];
+
+        // แปลง Array เป็น Object ELEMENTS_A
+        const ELEMENTS_A = {};
+        rawElements.forEach(item => {
+            ELEMENTS_A[item[1]] = {
+                atomicNumber: item[0],
+                name: item[2],
+                mass: item[3],
+                group: item[4],
+                period: item[5],
+                config: item[6]
+            };
+        });
+        const ELEMENT_SYMBOLS = Object.keys(ELEMENTS_A);
+
+        // 2. ระบบสร้างสารประกอบระดับเทพ
+        const COMPOUNDS = {};
+
+        function gcd(a, b) { return !b ? a : gcd(b, a % b); }
+        function toSub(num) {
+            if (num <= 1) return "";
+            const subs = { '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉' };
+            return num.toString().split('').map(d => subs[d]).join('');
+        }
+
+        // =========================================================
+        // 2.1 Organic Compounds (UPDATED: C1-C25 แต่มี > 5000 ชนิด)
+        // =========================================================
+        
+        // Define substituents for combinatorial generation
+        const organicSubs = [
+            { sym: 'Cl', mass: 35, name: 'Chloro' },
+            { sym: 'Br', mass: 80, name: 'Bromo' },
+            { sym: 'I', mass: 127, name: 'Iodo' },
+            { sym: 'F', mass: 19, name: 'Fluoro' },
+            { sym: 'OH', mass: 17, name: 'Hydroxy' }, // Alcohols
+            { sym: 'NH₂', mass: 16, name: 'Amino' },  // Amines
+            { sym: 'NO₂', mass: 46, name: 'Nitro' },
+            { sym: 'CN', mass: 26, name: 'Cyano' }
+        ];
+
+        // Loop C 1 to 25 only
+        for (let n = 1; n <= 25; n++) {
+            const C_mass = ELEMENTS_A['C'].mass * n;
+            const H_mass = ELEMENTS_A['H'].mass;
+            
+            // 1. Basic Hydrocarbons Series
+            // Alkane
+            let h_alk = 2 * n + 2;
+            COMPOUNDS[`C${toSub(n)}H${toSub(h_alk)}`] = C_mass + (H_mass * h_alk);
+
+            // Alkene (n>=2)
+            if (n >= 2) {
+                let h_ene = 2 * n;
+                COMPOUNDS[`C${toSub(n)}H${toSub(h_ene)}`] = C_mass + (H_mass * h_ene);
+            }
+            // Alkyne (n>=2)
+            if (n >= 2) {
+                let h_yne = 2 * n - 2;
+                COMPOUNDS[`C${toSub(n)}H${toSub(h_yne)}`] = C_mass + (H_mass * h_yne);
+            }
+            
+            // 2. Simple Oxygenated Series
+            // Alcohol/Ether isomer (CnH2n+2O)
+            COMPOUNDS[`C${toSub(n)}H${toSub(2*n+2)}O`] = C_mass + (H_mass * (2*n+2)) + 16;
+            
+            // Acid/Ester isomer (CnH2nO2)
+            if (n >= 1) {
+                COMPOUNDS[`C${toSub(n)}H${toSub(2*n)}O₂`] = C_mass + (H_mass * (2*n)) + 32;
+            }
+
+            // 3. Poly-Oxygenated (Sugars/Glycols equivalents)
+            // CnH2nOn (Formaldehyde units)
+            COMPOUNDS[`C${toSub(n)}H${toSub(2*n)}O${toSub(n)}`] = C_mass + (H_mass * 2 * n) + (16 * n);
+
+            // 4. COMBINATORIAL DERIVATIVES (The Volume Booster)
+            // แทนที่ H ใน Alkane (Base H = 2n+2) ด้วยหมู่ฟังก์ชันต่างๆ
+            // เพื่อสร้างโจทย์จำนวนมหาศาลจาก C น้อยๆ
+            let baseH = 2 * n + 2;
+
+            // 4.1 Single type substitution (Monosubstituted to Tetrasubstituted)
+            organicSubs.forEach(sub => {
+                // แทนที่ H จำนวน k ตัว (1 ถึง 4 ตัว)
+                for(let k=1; k<=4; k++) {
+                    if (baseH - k >= 1) { // ต้องเหลือ H อย่างน้อย 1
+                        let remainingH = baseH - k;
+                        let formula = `C${toSub(n)}H${toSub(remainingH)}${sub.sym}`;
+                        if (k > 1) formula += toSub(k);
+                        let mass = C_mass + (remainingH * H_mass) + (sub.mass * k);
+                        COMPOUNDS[formula] = mass;
+                    }
+                }
+            });
+
+            // 4.2 Mixed Substitutions (Pairing)
+            // e.g., CnH...ClBr, CnH...Cl2Br
+            for (let i = 0; i < organicSubs.length; i++) {
+                for (let j = i + 1; j < organicSubs.length; j++) {
+                    let s1 = organicSubs[i];
+                    let s2 = organicSubs[j];
+
+                    // Form: C... H(n-2) X Y (แทนที่ 2 ตำแหน่ง)
+                    if (baseH - 2 >= 1) {
+                        let h = baseH - 2;
+                        let f = `C${toSub(n)}H${toSub(h)}${s1.sym}${s2.sym}`;
+                        let m = C_mass + (h * H_mass) + s1.mass + s2.mass;
+                        COMPOUNDS[f] = m;
+                    }
+
+                    // Form: C... H(n-3) X2 Y (แทนที่ 3 ตำแหน่ง)
+                    if (baseH - 3 >= 1) {
+                        let h = baseH - 3;
+                        let f = `C${toSub(n)}H${toSub(h)}${s1.sym}₂${s2.sym}`;
+                        let m = C_mass + (h * H_mass) + (s1.mass * 2) + s2.mass;
+                        COMPOUNDS[f] = m;
+                    }
+                }
+            }
+        }
+        // =========================================================
+
+        // 2.2 Ionic Compounds (เพิ่ม Transition Metals)
+        // ขยาย List ไอออนบวก (Cations) และ ไอออนลบ (Anions)
+        const cations = [
+            // Group 1
+            { sym: 'Li', val: 1 }, { sym: 'Na', val: 1 }, { sym: 'K', val: 1 }, { sym: 'Rb', val: 1 }, { sym: 'Cs', val: 1 },
+            // Group 2
+            { sym: 'Be', val: 2 }, { sym: 'Mg', val: 2 }, { sym: 'Ca', val: 2 }, { sym: 'Sr', val: 2 }, { sym: 'Ba', val: 2 },
+            // Group 3-12 (Transition & Post-Transition)
+            { sym: 'Al', val: 3 }, { sym: 'Ga', val: 3 }, { sym: 'In', val: 3 },
+            { sym: 'Fe', val: 2 }, { sym: 'Fe', val: 3 }, // Iron II, III
+            { sym: 'Cu', val: 1 }, { sym: 'Cu', val: 2 }, // Copper I, II
+            { sym: 'Ag', val: 1 }, { sym: 'Zn', val: 2 }, { sym: 'Ni', val: 2 },
+            { sym: 'Pb', val: 2 }, { sym: 'Pb', val: 4 }, { sym: 'Sn', val: 2 }, { sym: 'Sn', val: 4 },
+            { sym: 'Mn', val: 2 }, { sym: 'Hg', val: 2 }, { sym: 'Cr', val: 3 }, { sym: 'Co', val: 2 },
+            { sym: 'NH₄', val: 1, mass: 18 }
+        ];
+
+        const anions = [
+            { sym: 'F', val: 1, mass: 19 },
+            { sym: 'Cl', val: 1, mass: 35 },
+            { sym: 'Br', val: 1, mass: 80 },
+            { sym: 'I', val: 1, mass: 127 },
+            { sym: 'OH', val: 1, mass: 17 },
+            { sym: 'NO₃', val: 1, mass: 62 },
+            { sym: 'NO₂', val: 1, mass: 46 },
+            { sym: 'MnO₄', val: 1, mass: 119 },
+            { sym: 'CN', val: 1, mass: 26 },
+            { sym: 'ClO₃', val: 1, mass: 83 },
+            { sym: 'O', val: 2, mass: 16 },
+            { sym: 'S', val: 2, mass: 32 },
+            { sym: 'SO₄', val: 2, mass: 96 },
+            { sym: 'SO₃', val: 2, mass: 80 },
+            { sym: 'CO₃', val: 2, mass: 60 },
+            { sym: 'CrO₄', val: 2, mass: 116 },
+            { sym: 'Cr₂O₇', val: 2, mass: 216 },
+            { sym: 'PO₄', val: 3, mass: 95 },
+            { sym: 'PO₃', val: 3, mass: 79 },
+            { sym: 'N', val: 3, mass: 14 }
+        ];
+
+        // วนลูปจับคู่ไอออนทุกตัว
+        cations.forEach(cat => {
+            const mCat = cat.mass || ELEMENTS_A[cat.sym].mass;
+            anions.forEach(an => {
+                // คำนวณอัตราส่วนอย่างต่ำด้วย GCD
+                const common = gcd(cat.val, an.val);
+                const cNum = an.val / common;
+                const aNum = cat.val / common;
+
+                let formula = "";
+                // จัดการวงเล็บสำหรับกลุ่มอะตอม (เช่น NH4, NO3)
+                if (cat.sym.length > 2 && cNum > 1) formula += `(${cat.sym})${toSub(cNum)}`;
+                else formula += `${cat.sym}${toSub(cNum)}`;
+
+                if (an.sym.length > 2 && aNum > 1) formula += `(${an.sym})${toSub(aNum)}`;
+                else formula += `${an.sym}${toSub(aNum)}`;
+
+                const totalMass = (mCat * cNum) + (an.mass * aNum);
+                COMPOUNDS[formula] = totalMass;
+            });
+        });
+
+        // 2.3 Extras
+        const extras = {
+            'H₂O': 18, 'H₂O₂': 34, 'CO₂': 44, 'CO': 28, 'SO₂': 64, 'SO₃': 80, 
+            'PCl₃': 137, 'PCl₅': 208, 'SF₆': 146, 'CCl₄': 154, 'BF₃': 68,
+            'N₂O': 44, 'N₂O₅': 108, 'NO₂': 46, 'NH₃': 17, 'SiO₂': 60,
+            'O₂': 32, 'N₂': 28, 'H₂': 2, 'Cl₂': 71, 'O₃': 48,
+            'C₆H₁₂O₆': 180, 'C₁₂H₂₂O₁₁': 342, 'CH₄': 16
+        };
+        Object.assign(COMPOUNDS, extras);
+
+        const COMPOUND_FORMULAS = Object.keys(COMPOUNDS);
+        // console.log("Total Compounds Generated:", COMPOUND_FORMULAS.length); // Uncomment to check count
+
+        let gameMode = 'normal';
+        let gameSettings = { category: null, answerType: null, numQuestions: 10 };
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let timerInterval;
+        let timeLeft = 120;
+        let leaderboardData = [];
+
+        // --- FUNCTIONS ---
+
+        function getCategoryName(id) {
+            const map = {
+                1: "สัญลักษณ์ -> หมู่/คาบ",
+                2: "สัญลักษณ์ -> เลขอะตอม",
+                3: "สัญลักษณ์ -> เลขมวล",
+                4: "สุ่มคำถาม (Proton, e-, n)",
+                5: "สารประกอบ -> มวลโมเลกุล"
+            };
+            return map[id] || "Unknown";
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function getGroupLabel(groupNumber) {
+            // ปรับการแสดงผลหมู่ ให้รองรับ Transition และหมู่ 1-18 แบบ IUPAC
+            if (groupNumber >= 3 && groupNumber <= 12) return groupNumber + " (Transition)";
+            if (groupNumber === 0) return "Lanthanide/Actinide"; // กรณีพิเศษ
+            const groupMap = { 1: '1A', 2: '2A', 13: '3A', 14: '4A', 15: '5A', 16: '6A', 17: '7A', 18: '8A' };
+            return groupMap[groupNumber] ? `${groupNumber} (${groupMap[groupNumber]})` : groupNumber.toString();
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+
+            if (pageId === 'page-game-play' && gameMode === 'ranked') {
+                document.getElementById('timer-display').classList.remove('hidden');
+            } else {
+                document.getElementById('timer-display').classList.add('hidden');
+            }
+            if (pageId === 'page-home') fetchLeaderboard();
+        }
+
+        function selectMode(mode) {
+            gameMode = mode;
+            if (mode === 'ranked') {
+                showPage('page-ranked-name');
+            } else {
+                showPage('page-game-settings-category');
+            }
+        }
+
+        function confirmRankedName() {
+            const name = document.getElementById('input-ranked-name-field').value.trim();
+            if (!name) {
+                alert("กรุณากรอกชื่อก่อนเริ่มสมรภูมิ!");
+                return;
+            }
+            const endGameInput = document.getElementById('player-name');
+            endGameInput.value = name;
+            showPage('page-game-settings-category');
+        }
+
+        function selectSetting(key, value) {
+            gameSettings[key] = value;
+            if (key === 'category') {
+                if (gameMode === 'ranked') {
+                    gameSettings.answerType = 'choice-10';
+                    gameSettings.numQuestions = 200;
+                    startGame();
+                } else {
+                    showPage('page-game-settings-answer-type');
+                }
+            } else if (key === 'answerType') showPage('page-game-settings-num-questions');
+        }
+
+        function selectNumQuestions() {
+            const num = parseInt(document.getElementById('input-num-questions').value);
+            if (num < 1 || num > 50) return alert("กรุณาใส่จำนวนข้อระหว่าง 1 - 50");
+            gameSettings.numQuestions = num;
+            startGame();
+        }
+
+        function startGame() {
+            questions = [];
+            currentQuestionIndex = 0;
+            score = 0;
+            correctCount = 0;
+            wrongCount = 0;
+            generateQuestions(gameSettings.numQuestions);
+            if (questions.length === 0) return alert("Error generating questions");
+
+            const totalWrapper = document.getElementById('question-total-wrapper');
+            if (gameMode === 'ranked') {
+                totalWrapper.style.display = 'none';
+                timeLeft = 120;
+                document.getElementById('time-remaining').textContent = timeLeft;
+                clearInterval(timerInterval);
+                timerInterval = setInterval(updateTimer, 1000);
+            } else {
+                totalWrapper.style.display = 'inline';
+                document.getElementById('question-total').textContent = gameSettings.numQuestions;
+            }
+
+            document.getElementById('current-score-display').textContent = '0';
+            showPage('page-game-play');
+            displayQuestion();
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            document.getElementById('time-remaining').textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                endGameEarly();
+            }
+        }
+
+        function generateQuestions(num) {
+            const category = gameSettings.category;
+            let symbolsPool = shuffleArray([...ELEMENT_SYMBOLS]);
+
+            while (questions.length < num) {
+                const symbol = symbolsPool[questions.length % symbolsPool.length];
+                const element = ELEMENTS_A[symbol];
+                let qText = '', ans = '', opts = [];
+
+                if (category === 1) {
+                    qText = `ธาตุ ${symbol} อยู่หมู่ใด, คาบใด?`;
+                    ans = `หมู่ ${getGroupLabel(element.group)}, คาบ ${element.period}`;
+                } else if (category === 2) {
+                    qText = `ธาตุ ${symbol} มีเลขอะตอมเท่าใด?`;
+                    ans = element.atomicNumber.toString();
+                } else if (category === 3) {
+                    qText = `ธาตุ ${symbol} มีเลขมวล (โดยประมาณ) เท่าใด?`;
+                    ans = element.mass.toString();
+                } else if (category === 4) {
+                    const r = Math.random();
+                    if (r < 0.33) { qText = `ธาตุ ${symbol} มีโปรตอนกี่อนุภาค?`; ans = element.atomicNumber.toString(); }
+                    else if (r < 0.66) { qText = `ธาตุ ${symbol} มีนิวตรอนกี่อนุภาค? (โดยประมาณ)`; ans = Math.round(element.mass - element.atomicNumber).toString(); }
+                    else { 
+                        if (element.config.length > 20) {
+                             qText = `ชื่อภาษาอังกฤษของ ${symbol} คือ?`; ans = element.name;
+                        } else {
+                             qText = `การจัดเรียง e- ของ ${symbol}?`; ans = element.config; 
+                        }
+                    }
+                } else if (category === 5) {
+                    const formula = COMPOUND_FORMULAS[Math.floor(Math.random() * COMPOUND_FORMULAS.length)];
+                    qText = `มวลโมเลกุลของ ${formula} คือ?`;
+                    ans = COMPOUNDS[formula].toString();
+                }
+
+                // Generate Choices
+                opts = [ans];
+                while (opts.length < 10) {
+                    let fake;
+                    if (category === 1) {
+                        let rndG = Math.floor(Math.random() * 18) + 1;
+                        let rndP = Math.floor(Math.random() * 7) + 1;
+                        fake = `หมู่ ${getGroupLabel(rndG)}, คาบ ${rndP}`;
+                    } else if (category === 4 && ans.includes('s')) {
+                         fake = ELEMENTS_A[ELEMENT_SYMBOLS[Math.floor(Math.random() * ELEMENT_SYMBOLS.length)]].config;
+                    } else if (category === 4 && /^[A-Za-z]+$/.test(ans)) {
+                         fake = ELEMENTS_A[ELEMENT_SYMBOLS[Math.floor(Math.random() * ELEMENT_SYMBOLS.length)]].name;
+                    } else {
+                        // Number based answers
+                        let val = parseFloat(ans);
+                        fake = (val + Math.floor(Math.random() * 20) - 10).toString();
+                        if (parseFloat(fake) <= 0) fake = "1";
+                    }
+                    if (!opts.includes(fake)) opts.push(fake);
+                }
+                shuffleArray(opts);
+                questions.push({ questionText: qText, answer: ans, options: opts });
+            }
+        }
+
+        function displayQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                endGameEarly();
+                return;
+            }
+
+            const q = questions[currentQuestionIndex];
+            document.getElementById('question-number').textContent = currentQuestionIndex + 1;
+            document.getElementById('question-text').innerHTML = q.questionText;
+            document.getElementById('feedback-area').textContent = '';
+
+            const answerArea = document.getElementById('answer-area');
+            answerArea.innerHTML = '';
+            answerArea.className = (gameSettings.answerType === 'choice-10' || gameMode === 'ranked')
+                ? "grid grid-cols-2 gap-3 transition-all duration-300"
+                : "space-y-3 transition-all duration-300";
+
+            if (gameMode === 'normal' && gameSettings.answerType === 'text') {
+                answerArea.className = "space-y-3 transition-all duration-300";
+                if (gameSettings.category === 1) {
+                     answerArea.innerHTML = `<input type="text" id="text-answer" placeholder="คำตอบ..." class="bg-red-900 border-red-500">`;
+                } else {
+                    answerArea.innerHTML = `<input type="text" id="text-answer" placeholder="คำตอบ..." class="bg-red-900 border-red-500">`;
+                }
+                document.getElementById('submit-answer-button').style.display = 'block';
+            } else {
+                document.getElementById('submit-answer-button').style.display = 'none';
+                const limit = (gameMode === 'normal' && gameSettings.answerType === 'choice-5') ? 5 : 10;
+                const choices = q.options.slice(0, limit);
+                if (!choices.includes(q.answer)) choices[0] = q.answer;
+                shuffleArray(choices);
+
+                choices.forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.textContent = c;
+                    btn.className = "btn btn-gray h-full hover:bg-red-800";
+                    btn.onclick = () => submitAnswer(c);
+                    answerArea.appendChild(btn);
+                });
+            }
+        }
+
+        function submitAnswer(choice = null) {
+            const q = questions[currentQuestionIndex];
+            let userAnswer = choice;
+            if (!choice) {
+                if (document.getElementById('text-answer')) {
+                    userAnswer = document.getElementById('text-answer').value.trim();
+                }
+            }
+            if (!userAnswer) return;
+
+            const isCorrect = userAnswer.toString().toLowerCase().replace(/\s/g,'') === q.answer.toString().toLowerCase().replace(/\s/g,'');
+            const feedback = document.getElementById('feedback-area');
+
+            if (isCorrect) {
+                score++; correctCount++;
+                feedback.textContent = 'ถูกต้อง! (Excellent)';
+                feedback.className = 'text-center text-lg h-8 font-bold text-green-400 drop-shadow-md';
+            } else {
+                if (gameMode === 'ranked') score--;
+                wrongCount++;
+                feedback.textContent = `ผิด! เฉลย: ${q.answer}`;
+                feedback.className = 'text-center text-lg h-8 font-bold text-red-500 drop-shadow-md';
+            }
+
+            if (gameMode === 'ranked') {
+                document.getElementById('current-score-display').textContent = score;
+                currentQuestionIndex++;
+                displayQuestion();
+            } else {
+                document.getElementById('current-score-display').textContent = score;
+                currentQuestionIndex++;
+                setTimeout(displayQuestion, 1500);
+            }
+        }
+
+        function endGameEarly() {
+            clearInterval(timerInterval);
+            document.getElementById('score-final').textContent = score;
+
+            if (gameMode === 'ranked') {
+                document.getElementById('score-total-display').textContent = '';
+                document.getElementById('score-percentage').textContent = '(Ranked Mode)';
+                document.getElementById('played-category-display').textContent = `หมวดหมู่: ${getCategoryName(gameSettings.category)}`;
+                document.getElementById('ranked-submit-area').classList.remove('hidden');
+            } else {
+                document.getElementById('score-total-display').textContent = `/ ${gameSettings.numQuestions}`;
+                const pct = (score / gameSettings.numQuestions) * 100;
+                document.getElementById('score-percentage').textContent = `(${pct.toFixed(0)}%)`;
+                document.getElementById('played-category-display').textContent = '';
+                document.getElementById('ranked-submit-area').classList.add('hidden');
+            }
+            showPage('page-game-score');
+
+            // Auto-submit ranked
+            if (gameMode === 'ranked') {
+                try {
+                    const nameInput = document.getElementById('player-name');
+                    if (nameInput && !nameInput.value.trim()) {
+                        const last = localStorage.getItem('lastPlayerName');
+                        nameInput.value = last && last.trim() ? last : 'Anonymous';
+                    }
+                    submitScoreToSheet();
+                } catch (e) { console.warn(e); }
+            }
+        }
+
+        function resetGame() {
+            clearInterval(timerInterval);
+            gameSettings = { category: null, answerType: null, numQuestions: 10 };
+            document.getElementById('submit-status').textContent = '';
+            document.getElementById('player-name').value = '';
+            document.getElementById('input-ranked-name-field').value = '';
+            correctCount = 0; wrongCount = 0;
+            const submitBtn = document.getElementById('btn-submit-score');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'บันทึกสถิติ';
+            }
+        }
+
+        // --- SHEET API ---
+        async function fetchLeaderboard() {
+            if (!APPS_SCRIPT_URL) return;
+            const loading = document.getElementById('leaderboard-loading');
+            const table = document.getElementById('leaderboard-table');
+            const emptyMsg = document.getElementById('leaderboard-empty');
+
+            loading.classList.remove('hidden');
+            table.classList.add('hidden');
+            emptyMsg.classList.add('hidden');
+
+            try {
+                const response = await fetch(APPS_SCRIPT_URL);
+                leaderboardData = await response.json();
+                renderLeaderboard();
+                loading.classList.add('hidden');
+            } catch (error) {
+                loading.textContent = "Offline Mode / API Error";
+            }
+        }
+
+        function renderLeaderboard() {
+            const tableBody = document.getElementById('leaderboard-body');
+            const table = document.getElementById('leaderboard-table');
+            const emptyMsg = document.getElementById('leaderboard-empty');
+            const filterValue = document.getElementById('leaderboard-category-select').value;
+
+            let filteredData = leaderboardData;
+            if (filterValue !== 'all') {
+                const targetName = getCategoryName(parseInt(filterValue));
+                filteredData = leaderboardData.filter(item => item.category === targetName);
+            }
+
+            filteredData.sort((a, b) => b.score - a.score);
+            const top10 = filteredData.slice(0, 10);
+
+            tableBody.innerHTML = '';
+            if (top10.length === 0) {
+                table.classList.add('hidden');
+                emptyMsg.classList.remove('hidden');
+            } else {
+                top10.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = index < 3 ? "text-yellow-400 font-bold" : "text-gray-300";
+                    let catDisplay = row.category || '-';
+                    if (catDisplay.length > 10) catDisplay = catDisplay.substring(0, 8) + '...';
+
+                    tr.innerHTML = `
+                        <td class="p-2">${index + 1}</td>
+                        <td class="text-left pl-2">${row.name}</td>
+                        <td class="text-xs text-gray-500">${catDisplay}</td>
+                        <td class="text-red-400">${row.score}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+                table.classList.remove('hidden');
+                emptyMsg.classList.add('hidden');
+            }
+        }
+
+        async function submitScoreToSheet() {
+            const nameRaw = document.getElementById('player-name').value.trim();
+            const btn = document.getElementById('btn-submit-score');
+            const status = document.getElementById('submit-status');
+            const finalName = nameRaw || localStorage.getItem('lastPlayerName') || 'Anonymous';
+            
+            if (document.getElementById('player-name')) document.getElementById('player-name').value = finalName;
+            if (!APPS_SCRIPT_URL) return;
+
+            btn.disabled = true;
+            btn.textContent = "Sending...";
+
+            const catName = getCategoryName(gameSettings.category);
+
+            try {
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        name: finalName,
+                        score: score,
+                        correct: correctCount,
+                        wrong: wrongCount,
+                        category: catName
+                    })
+                });
+                localStorage.setItem('lastPlayerName', finalName);
+                status.textContent = "Saved!";
+                status.className = "text-green-500 text-sm h-6";
+            } catch (error) {
+                status.textContent = "Error";
+                status.className = "text-red-500 text-sm h-6";
+                btn.disabled = false;
+                btn.textContent = "Retry";
+            }
+        }
+
+        fetchLeaderboard();
+    </script>
+</body>
+</html>
