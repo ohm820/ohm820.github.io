@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตารางธาตุ - Periodic Table Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+            background-color: #0f0718;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1025;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #7c3aed;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6d28d9;
+        }
+
+        /* Periodic Grid Layout */
+        .periodic-grid {
+            display: grid;
+            grid-template-columns: repeat(18, minmax(0, 1fr));
+            gap: 4px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            overflow-x: auto; /* Allow horizontal scroll on small screens */
+        }
+
+        /* Aspect ratio for grid cells to keep them square-ish */
+        .element-cell {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            user-select: none;
+        }
+
+        .element-cell:hover {
+            transform: scale(1.15);
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.5);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Category Colors (Border & Background tint) */
+        .cat-alkali { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; color: #fca5a5; } /* Red */
+        .cat-alkaline-earth { background: rgba(249, 115, 22, 0.15); border-color: #f97316; color: #fdba74; } /* Orange */
+        .cat-transition { background: rgba(234, 179, 8, 0.15); border-color: #eab308; color: #fde047; } /* Yellow */
+        .cat-post-transition { background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #6ee7b7; } /* Emerald */
+        .cat-metalloid { background: rgba(20, 184, 166, 0.15); border-color: #a5ed21; color: #3f9922; } /* Teal */
+        .cat-nonmetal { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; color: #93c5fd; } /* Blue */
+        .cat-halogen { background: rgba(139, 92, 246, 0.15); border-color: #8b5cf6; color: #c4b5fd; } /* Violet */
+        .cat-noble { background: rgba(168, 85, 247, 0.15); border-color: #a855f7; color: #d8b4fe; } /* Purple */
+        .cat-lanthanide { background: rgba(236, 72, 153, 0.15); border-color: #ec4899; color: #f9a8d4; } /* Pink */
+        .cat-actinide { background: rgba(244, 63, 94, 0.15); border-color: #f43f5e; color: #fda4af; } /* Rose */
+        .cat-unknown { background: rgba(71, 85, 105, 0.3); border-color: #475569; color: #cbd5e1; } /* Slate */
+
+        /* Modal Blur */
+        .modal-backdrop {
+            backdrop-filter: blur(8px);
+        }
+        
+        /* Specific tweaks for text size in cells */
+        .atomic-num { font-size: 0.6rem; position: absolute; top: 2px; left: 4px; opacity: 0.7; }
+        .symbol { font-size: 1.1rem; font-weight: 700; }
+        .name { font-size: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%; opacity: 0.9; }
+
+        @media (min-width: 768px) {
+            .symbol { font-size: 1.4rem; }
+            .name { font-size: 0.65rem; }
+            .atomic-num { font-size: 0.75rem; }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="p-4 border-b border-purple-900/50 bg-[#0f0718]/90 sticky top-0 z-30 backdrop-blur-md">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <span class="text-xl font-bold text-white">Pt</span>
+                </div>
+                <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
+                    ตารางธาตุ
+                </h1>
+            </div>
+            
+            <div class="relative w-full md:w-96 group">
+                <input type="text" id="searchInput" 
+                    class="w-full bg-[#1a1025] border border-purple-900/50 rounded-xl py-2 pl-10 pr-4 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-sm group-hover:bg-[#251635]"
+                    placeholder="ค้นหาธาตุ (ชื่อ, สัญลักษณ์, เลขอะตอม)...">
+                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Legend (หมวดหมู่) -->
+    <div class="container mx-auto px-4 py-4">
+        <div class="flex flex-wrap gap-2 justify-center text-xs">
+            <div class="flex items-center gap-1 px-2 py-1 rounded border border-red-500 bg-red-500/10 cursor-pointer hover:bg-red-500/20" onclick="filterByCategory('alkali')"><div class="w-3 h-3 bg-red-500 rounded-full"></div>โลหะแอลคาไลน์</div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded border border-orange-500 bg-orange-500/10 cursor-pointer hover:bg-orange-500/20" onclick="filterByCategory('alkaline-earth')"><div class="w-3 h-3 bg-orange-500 rounded-full"></div>โลหะแอลคาไลน์เอิร์ท</div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded border border-pink-500 bg-pink-500/10 cursor-pointer hover:bg-pink-500/20" onclick="filterByCategory('lanthanide')"><div class="w-3 h-3 bg-pink-500 rounded-full"></div>แลนทาไนด์</div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded border border-rose-500 bg-rose-500/10 cursor-pointer hover:bg-rose-500/20" onclick="filterByCategory('actinide')"><div class="w-3 h-3 bg-rose-500 rounded-full"></div>แอกทิไนด์</div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded border border-yellow-500 bg-yellow-500/10 cursor-pointer hover:bg-yellow-500/20" onclick="filterByCategory('transition')"><div class="w-3 h-3 bg-yellow-500 rounded-full"></div>โลหะทรานซิชัน</div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded border border-emerald-500 bg-emerald-500/10 cursor-pointer hover:bg-emerald-500/20" onclick="filterByCategory('post-transition')"><div class="w-3 h-3 bg-emerald-500 rounded-full"></div>โลหะหลังทรานซิชัน</div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded border border-teal-500 bg-teal-500/10 cursor-pointer hover:bg-teal-500/20" onclick="filterByCategory('metalloid')"><div class="w-3 h-3 bg-teal-500 rounded-full"></div>ธาตุกึ่งโลหะ</div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded border border-blue-500 bg-blue-500/10 cursor-pointer hover:bg-blue-500/20" onclick="filterByCategory('nonmetal')"><div class="w-3 h-3 bg-blue-500 rounded-full"></div>อโลหะอื่นๆ</div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded border border-violet-500 bg-violet-500/10 cursor-pointer hover:bg-violet-500/20" onclick="filterByCategory('halogen')"><div class="w-3 h-3 bg-violet-500 rounded-full"></div>แฮโลเจน</div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded border border-purple-500 bg-purple-500/10 cursor-pointer hover:bg-purple-500/20" onclick="filterByCategory('noble')"><div class="w-3 h-3 bg-purple-500 rounded-full"></div>แก๊สมีตระกูล</div>
+        </div>
+        <div class="text-center mt-2 text-xs text-gray-500 hover:text-gray-300 cursor-pointer" onclick="resetFilter()">[แสดงทั้งหมด]</div>
+    </div>
+
+    <!-- Main Grid -->
+    <main class="flex-grow flex items-center justify-center">
+        <div class="periodic-grid" id="elementsGrid">
+            <!-- Elements will be injected here via JS -->
+             
+            <!-- Placeholders for Lanthanide/Actinide gaps in main table -->
+             <div class="element-cell opacity-50 border-dashed border-gray-600 text-gray-500 col-start-3 row-start-6 flex flex-col justify-center items-center text-xs">
+                <span>57-71</span>
+                <span>La-Lu</span>
+             </div>
+             <div class="element-cell opacity-50 border-dashed border-gray-600 text-gray-500 col-start-3 row-start-7 flex flex-col justify-center items-center text-xs">
+                <span>89-103</span>
+                <span>Ac-Lr</span>
+             </div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="elementModal" class="fixed inset-0 z-50 hidden modal-backdrop bg-black/60 flex items-center justify-center p-4">
+        <div class="bg-[#1a1025] border border-purple-500/30 rounded-2xl w-full max-w-2xl shadow-2xl transform transition-all scale-100 relative overflow-hidden">
+            
+            <!-- Background Decoration -->
+            <div class="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+            
+            <!-- Close Button -->
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors z-10">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+
+            <div class="flex flex-col md:flex-row h-full">
+                <!-- Left: Big Visual -->
+                <div class="w-full md:w-1/3 bg-gradient-to-b from-[#251635] to-[#1a1025] p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-purple-900/30">
+                    <div id="modalNumber" class="text-6xl font-black text-white/10 absolute top-4 left-4"></div>
+                    <div id="modalSymbol" class="text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-purple-400 to-blue-400 mb-2"></div>
+                    <div id="modalName" class="text-2xl font-bold text-white mb-1"></div>
+                    <div id="modalNameEn" class="text-sm text-gray-400 italic mb-4"></div>
+                    <div class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30" id="modalCategory"></div>
+                </div>
+
+                <!-- Right: Details -->
+                <div class="w-full md:w-2/3 p-8 relative z-0">
+                    <h3 class="text-lg font-semibold text-purple-300 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        ข้อมูลจำเพาะ
+                    </h3>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-[#0f0718] p-3 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-500 block">มวลอะตอม</span>
+                            <span id="modalMass" class="text-lg font-mono text-blue-300"></span>
+                        </div>
+                        <div class="bg-[#0f0718] p-3 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-500 block">การค้นพบ</span>
+                            <span id="modalDiscovered" class="text-sm text-green-300"></span>
+                        </div>
+                        <div class="bg-[#0f0718] p-3 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-500 block">หมู่ (Group)</span>
+                            <span id="modalGroup" class="text-lg text-white"></span>
+                        </div>
+                        <div class="bg-[#0f0718] p-3 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-500 block">คาบ (Period)</span>
+                            <span id="modalPeriod" class="text-lg text-white"></span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="bg-[#0f0718] p-3 rounded-xl border border-white/5">
+                             <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs text-gray-500">อนุภาคมูลฐาน</span>
+                            </div>
+                            <div class="flex gap-4 text-sm">
+                                <div class="text-red-400">P: <span id="modalProton"></span></div>
+                                <div class="text-blue-400">E: <span id="modalElectron"></span></div>
+                                <div class="text-gray-400">N: <span id="modalNeutron"></span></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#0f0718] p-3 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-500 block mb-1">การจัดเรียงอิเล็กตรอน</span>
+                            <div id="modalConfigShort" class="font-mono text-yellow-300 text-sm mb-1"></div>
+                            <div id="modalConfigFull" class="font-mono text-gray-500 text-xs break-all"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* DATA DEFINITION 
+           Includes detailed categories as requested:
+           - alkali, alkaline-earth, transition, post-transition, metalloid, nonmetal, halogen, noble, lanthanide, actinide
+        */
+        const elementsData = [
+            // Period 1
+            { n: 1, s: "H", name: "ไฮโดรเจน", nameEn: "Hydrogen", mass: "1.008", cat: "nonmetal", g: 1, p: 1, config: "1s1" },
+            { n: 2, s: "He", name: "ฮีเลียม", nameEn: "Helium", mass: "4.0026", cat: "noble", g: 18, p: 1, config: "1s2" },
+            
+            // Period 2
+            { n: 3, s: "Li", name: "ลิเทียม", nameEn: "Lithium", mass: "6.94", cat: "alkali", g: 1, p: 2, config: "[He] 2s1" },
+            { n: 4, s: "Be", name: "เบอริลเลียม", nameEn: "Beryllium", mass: "9.0122", cat: "alkaline-earth", g: 2, p: 2, config: "[He] 2s2" },
+            { n: 5, s: "B", name: "โบรอน", nameEn: "Boron", mass: "10.81", cat: "metalloid", g: 13, p: 2, config: "[He] 2s2 2p1" },
+            { n: 6, s: "C", name: "คาร์บอน", nameEn: "Carbon", mass: "12.011", cat: "nonmetal", g: 14, p: 2, config: "[He] 2s2 2p2" },
+            { n: 7, s: "N", name: "ไนโตรเจน", nameEn: "Nitrogen", mass: "14.007", cat: "nonmetal", g: 15, p: 2, config: "[He] 2s2 2p3" },
+            { n: 8, s: "O", name: "ออกซิเจน", nameEn: "Oxygen", mass: "15.999", cat: "nonmetal", g: 16, p: 2, config: "[He] 2s2 2p4" },
+            { n: 9, s: "F", name: "ฟลูออรีน", nameEn: "Fluorine", mass: "18.998", cat: "halogen", g: 17, p: 2, config: "[He] 2s2 2p5" },
+            { n: 10, s: "Ne", name: "นีออน", nameEn: "Neon", mass: "20.180", cat: "noble", g: 18, p: 2, config: "[He] 2s2 2p6" },
+
+            // Period 3
+            { n: 11, s: "Na", name: "โซเดียม", nameEn: "Sodium", mass: "22.990", cat: "alkali", g: 1, p: 3, config: "[Ne] 3s1" },
+            { n: 12, s: "Mg", name: "แมกนีเซียม", nameEn: "Magnesium", mass: "24.305", cat: "alkaline-earth", g: 2, p: 3, config: "[Ne] 3s2" },
+            { n: 13, s: "Al", name: "อะลูมิเนียม", nameEn: "Aluminium", mass: "26.982", cat: "post-transition", g: 13, p: 3, config: "[Ne] 3s2 3p1" },
+            { n: 14, s: "Si", name: "ซิลิคอน", nameEn: "Silicon", mass: "28.085", cat: "metalloid", g: 14, p: 3, config: "[Ne] 3s2 3p2" },
+            { n: 15, s: "P", name: "ฟอสฟอรัส", nameEn: "Phosphorus", mass: "30.974", cat: "nonmetal", g: 15, p: 3, config: "[Ne] 3s2 3p3" },
+            { n: 16, s: "S", name: "กำมะถัน", nameEn: "Sulfur", mass: "32.06", cat: "nonmetal", g: 16, p: 3, config: "[Ne] 3s2 3p4" },
+            { n: 17, s: "Cl", name: "คลอรีน", nameEn: "Chlorine", mass: "35.45", cat: "halogen", g: 17, p: 3, config: "[Ne] 3s2 3p5" },
+            { n: 18, s: "Ar", name: "อาร์กอน", nameEn: "Argon", mass: "39.948", cat: "noble", g: 18, p: 3, config: "[Ne] 3s2 3p6" },
+
+            // Period 4
+            { n: 19, s: "K", name: "โพแทสเซียม", nameEn: "Potassium", mass: "39.098", cat: "alkali", g: 1, p: 4, config: "[Ar] 4s1" },
+            { n: 20, s: "Ca", name: "แคลเซียม", nameEn: "Calcium", mass: "40.078", cat: "alkaline-earth", g: 2, p: 4, config: "[Ar] 4s2" },
+            { n: 21, s: "Sc", name: "สแกนเดียม", nameEn: "Scandium", mass: "44.956", cat: "transition", g: 3, p: 4, config: "[Ar] 3d1 4s2" },
+            { n: 22, s: "Ti", name: "ไทเทเนียม", nameEn: "Titanium", mass: "47.867", cat: "transition", g: 4, p: 4, config: "[Ar] 3d2 4s2" },
+            { n: 23, s: "V", name: "วาเนเดียม", nameEn: "Vanadium", mass: "50.942", cat: "transition", g: 5, p: 4, config: "[Ar] 3d3 4s2" },
+            { n: 24, s: "Cr", name: "โครเมียม", nameEn: "Chromium", mass: "51.996", cat: "transition", g: 6, p: 4, config: "[Ar] 3d5 4s1" },
+            { n: 25, s: "Mn", name: "แมงกานีส", nameEn: "Manganese", mass: "54.938", cat: "transition", g: 7, p: 4, config: "[Ar] 3d5 4s2" },
+            { n: 26, s: "Fe", name: "เหล็ก", nameEn: "Iron", mass: "55.845", cat: "transition", g: 8, p: 4, config: "[Ar] 3d6 4s2" },
+            { n: 27, s: "Co", name: "โคบอลต์", nameEn: "Cobalt", mass: "58.933", cat: "transition", g: 9, p: 4, config: "[Ar] 3d7 4s2" },
+            { n: 28, s: "Ni", name: "นิกเกิล", nameEn: "Nickel", mass: "58.693", cat: "transition", g: 10, p: 4, config: "[Ar] 3d8 4s2" },
+            { n: 29, s: "Cu", name: "ทองแดง", nameEn: "Copper", mass: "63.546", cat: "transition", g: 11, p: 4, config: "[Ar] 3d10 4s1" },
+            { n: 30, s: "Zn", name: "สังกะสี", nameEn: "Zinc", mass: "65.38", cat: "transition", g: 12, p: 4, config: "[Ar] 3d10 4s2" },
+            { n: 31, s: "Ga", name: "แกลเลียม", nameEn: "Gallium", mass: "69.723", cat: "post-transition", g: 13, p: 4, config: "[Ar] 3d10 4s2 4p1" },
+            { n: 32, s: "Ge", name: "เจอร์เมเนียม", nameEn: "Germanium", mass: "72.630", cat: "metalloid", g: 14, p: 4, config: "[Ar] 3d10 4s2 4p2" },
+            { n: 33, s: "As", name: "สารหนู", nameEn: "Arsenic", mass: "74.922", cat: "metalloid", g: 15, p: 4, config: "[Ar] 3d10 4s2 4p3" },
+            { n: 34, s: "Se", name: "ซีลีเนียม", nameEn: "Selenium", mass: "78.971", cat: "nonmetal", g: 16, p: 4, config: "[Ar] 3d10 4s2 4p4" },
+            { n: 35, s: "Br", name: "โบรมีน", nameEn: "Bromine", mass: "79.904", cat: "halogen", g: 17, p: 4, config: "[Ar] 3d10 4s2 4p5" },
+            { n: 36, s: "Kr", name: "คริปทอน", nameEn: "Krypton", mass: "83.798", cat: "noble", g: 18, p: 4, config: "[Ar] 3d10 4s2 4p6" },
+
+            // Period 5
+            { n: 37, s: "Rb", name: "รูบิเดียม", nameEn: "Rubidium", mass: "85.468", cat: "alkali", g: 1, p: 5, config: "[Kr] 5s1" },
+            { n: 38, s: "Sr", name: "สตรอนเทียม", nameEn: "Strontium", mass: "87.62", cat: "alkaline-earth", g: 2, p: 5, config: "[Kr] 5s2" },
+            { n: 39, s: "Y", name: "อิตเทรียม", nameEn: "Yttrium", mass: "88.906", cat: "transition", g: 3, p: 5, config: "[Kr] 4d1 5s2" },
+            { n: 40, s: "Zr", name: "เซอร์โคเนียม", nameEn: "Zirconium", mass: "91.224", cat: "transition", g: 4, p: 5, config: "[Kr] 4d2 5s2" },
+            { n: 41, s: "Nb", name: "ไนโอเบียม", nameEn: "Niobium", mass: "92.906", cat: "transition", g: 5, p: 5, config: "[Kr] 4d4 5s1" },
+            { n: 42, s: "Mo", name: "โมลิบดีนัม", nameEn: "Molybdenum", mass: "95.95", cat: "transition", g: 6, p: 5, config: "[Kr] 4d5 5s1" },
+            { n: 43, s: "Tc", name: "เทคนีเซียม", nameEn: "Technetium", mass: "(98)", cat: "transition", g: 7, p: 5, config: "[Kr] 4d5 5s2" },
+            { n: 44, s: "Ru", name: "รูทีเนียม", nameEn: "Ruthenium", mass: "101.07", cat: "transition", g: 8, p: 5, config: "[Kr] 4d7 5s1" },
+            { n: 45, s: "Rh", name: "โรเดียม", nameEn: "Rhodium", mass: "102.91", cat: "transition", g: 9, p: 5, config: "[Kr] 4d8 5s1" },
+            { n: 46, s: "Pd", name: "แพลเลเดียม", nameEn: "Palladium", mass: "106.42", cat: "transition", g: 10, p: 5, config: "[Kr] 4d10" },
+            { n: 47, s: "Ag", name: "เงิน", nameEn: "Silver", mass: "107.87", cat: "transition", g: 11, p: 5, config: "[Kr] 4d10 5s1" },
+            { n: 48, s: "Cd", name: "แคดเมียม", nameEn: "Cadmium", mass: "112.41", cat: "transition", g: 12, p: 5, config: "[Kr] 4d10 5s2" },
+            { n: 49, s: "In", name: "อินเดียม", nameEn: "Indium", mass: "114.82", cat: "post-transition", g: 13, p: 5, config: "[Kr] 4d10 5s2 5p1" },
+            { n: 50, s: "Sn", name: "ดีบุก", nameEn: "Tin", mass: "118.71", cat: "post-transition", g: 14, p: 5, config: "[Kr] 4d10 5s2 5p2" },
+            { n: 51, s: "Sb", name: "พลวง", nameEn: "Antimony", mass: "121.76", cat: "metalloid", g: 15, p: 5, config: "[Kr] 4d10 5s2 5p3" },
+            { n: 52, s: "Te", name: "เทลลูเรียม", nameEn: "Tellurium", mass: "127.60", cat: "metalloid", g: 16, p: 5, config: "[Kr] 4d10 5s2 5p4" },
+            { n: 53, s: "I", name: "ไอโอดีน", nameEn: "Iodine", mass: "126.90", cat: "halogen", g: 17, p: 5, config: "[Kr] 4d10 5s2 5p5" },
+            { n: 54, s: "Xe", name: "ซีนอน", nameEn: "Xenon", mass: "131.29", cat: "noble", g: 18, p: 5, config: "[Kr] 4d10 5s2 5p6" },
+
+            // Period 6
+            { n: 55, s: "Cs", name: "ซีเซียม", nameEn: "Cesium", mass: "132.91", cat: "alkali", g: 1, p: 6, config: "[Xe] 6s1" },
+            { n: 56, s: "Ba", name: "แบเรียม", nameEn: "Barium", mass: "137.33", cat: "alkaline-earth", g: 2, p: 6, config: "[Xe] 6s2" },
+            // Lanthanides (57-71) - separate block
+            { n: 57, s: "La", name: "แลนทานัม", nameEn: "Lanthanum", mass: "138.91", cat: "lanthanide", g: null, p: 6, config: "[Xe] 5d1 6s2" },
+            { n: 58, s: "Ce", name: "ซีเรียม", nameEn: "Cerium", mass: "140.12", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f1 5d1 6s2" },
+            { n: 59, s: "Pr", name: "เพรซีโอดีเมียม", nameEn: "Praseodymium", mass: "140.91", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f3 6s2" },
+            { n: 60, s: "Nd", name: "นีโอดีเมียม", nameEn: "Neodymium", mass: "144.24", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f4 6s2" },
+            { n: 61, s: "Pm", name: "โพรมีเทียม", nameEn: "Promethium", mass: "(145)", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f5 6s2" },
+            { n: 62, s: "Sm", name: "ซาแมเรียม", nameEn: "Samarium", mass: "150.36", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f6 6s2" },
+            { n: 63, s: "Eu", name: "ยูโรเพียม", nameEn: "Europium", mass: "151.96", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f7 6s2" },
+            { n: 64, s: "Gd", name: "แกโดลิเนียม", nameEn: "Gadolinium", mass: "157.25", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f7 5d1 6s2" },
+            { n: 65, s: "Tb", name: "เทอร์เบียม", nameEn: "Terbium", mass: "158.93", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f9 6s2" },
+            { n: 66, s: "Dy", name: "ดิสโพรเซียม", nameEn: "Dysprosium", mass: "162.50", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f10 6s2" },
+            { n: 67, s: "Ho", name: "โฮลเมียม", nameEn: "Holmium", mass: "164.93", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f11 6s2" },
+            { n: 68, s: "Er", name: "เออร์เบียม", nameEn: "Erbium", mass: "167.26", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f12 6s2" },
+            { n: 69, s: "Tm", name: "ทูเลียม", nameEn: "Thulium", mass: "168.93", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f13 6s2" },
+            { n: 70, s: "Yb", name: "อิตเทอร์เบียม", nameEn: "Ytterbium", mass: "173.05", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f14 6s2" },
+            { n: 71, s: "Lu", name: "ลูทีเชียม", nameEn: "Lutetium", mass: "174.97", cat: "lanthanide", g: null, p: 6, config: "[Xe] 4f14 5d1 6s2" },
+            // Back to Period 6 Main
+            { n: 72, s: "Hf", name: "แฮฟเนียม", nameEn: "Hafnium", mass: "178.49", cat: "transition", g: 4, p: 6, config: "[Xe] 4f14 5d2 6s2" },
+            { n: 73, s: "Ta", name: "แทนทาลัม", nameEn: "Tantalum", mass: "180.95", cat: "transition", g: 5, p: 6, config: "[Xe] 4f14 5d3 6s2" },
+            { n: 74, s: "W", name: "ทังสเตน", nameEn: "Tungsten", mass: "183.84", cat: "transition", g: 6, p: 6, config: "[Xe] 4f14 5d4 6s2" },
+            { n: 75, s: "Re", name: "รีเนียม", nameEn: "Rhenium", mass: "186.21", cat: "transition", g: 7, p: 6, config: "[Xe] 4f14 5d5 6s2" },
+            { n: 76, s: "Os", name: "ออสเมียม", nameEn: "Osmium", mass: "190.23", cat: "transition", g: 8, p: 6, config: "[Xe] 4f14 5d6 6s2" },
+            { n: 77, s: "Ir", name: "อิริเดียม", nameEn: "Iridium", mass: "192.22", cat: "transition", g: 9, p: 6, config: "[Xe] 4f14 5d7 6s2" },
+            { n: 78, s: "Pt", name: "แพลทินัม", nameEn: "Platinum", mass: "195.08", cat: "transition", g: 10, p: 6, config: "[Xe] 4f14 5d9 6s1" },
+            { n: 79, s: "Au", name: "ทองคำ", nameEn: "Gold", mass: "196.97", cat: "transition", g: 11, p: 6, config: "[Xe] 4f14 5d10 6s1" },
+            { n: 80, s: "Hg", name: "ปรอท", nameEn: "Mercury", mass: "200.59", cat: "transition", g: 12, p: 6, config: "[Xe] 4f14 5d10 6s2" },
+            { n: 81, s: "Tl", name: "แทลเลียม", nameEn: "Thallium", mass: "204.38", cat: "post-transition", g: 13, p: 6, config: "[Xe] 4f14 5d10 6s2 6p1" },
+            { n: 82, s: "Pb", name: "ตะกั่ว", nameEn: "Lead", mass: "207.2", cat: "post-transition", g: 14, p: 6, config: "[Xe] 4f14 5d10 6s2 6p2" },
+            { n: 83, s: "Bi", name: "บิสมัท", nameEn: "Bismuth", mass: "208.98", cat: "post-transition", g: 15, p: 6, config: "[Xe] 4f14 5d10 6s2 6p3" },
+            { n: 84, s: "Po", name: "พอโลเนียม", nameEn: "Polonium", mass: "(209)", cat: "post-transition", g: 16, p: 6, config: "[Xe] 4f14 5d10 6s2 6p4" },
+            { n: 85, s: "At", name: "แอสทาทีน", nameEn: "Astatine", mass: "(210)", cat: "halogen", g: 17, p: 6, config: "[Xe] 4f14 5d10 6s2 6p5" },
+            { n: 86, s: "Rn", name: "เรดอน", nameEn: "Radon", mass: "(222)", cat: "noble", g: 18, p: 6, config: "[Xe] 4f14 5d10 6s2 6p6" },
+
+            // Period 7
+            { n: 87, s: "Fr", name: "ฟรานเซียม", nameEn: "Francium", mass: "(223)", cat: "alkali", g: 1, p: 7, config: "[Rn] 7s1" },
+            { n: 88, s: "Ra", name: "เรเดียม", nameEn: "Radium", mass: "(226)", cat: "alkaline-earth", g: 2, p: 7, config: "[Rn] 7s2" },
+            // Actinides (89-103) - separate block
+            { n: 89, s: "Ac", name: "แอกทิเนียม", nameEn: "Actinium", mass: "(227)", cat: "actinide", g: null, p: 7, config: "[Rn] 6d1 7s2" },
+            { n: 90, s: "Th", name: "ทอเรียม", nameEn: "Thorium", mass: "232.04", cat: "actinide", g: null, p: 7, config: "[Rn] 6d2 7s2" },
+            { n: 91, s: "Pa", name: "โพรแทกทิเนียม", nameEn: "Protactinium", mass: "231.04", cat: "actinide", g: null, p: 7, config: "[Rn] 5f2 6d1 7s2" },
+            { n: 92, s: "U", name: "ยูเรเนียม", nameEn: "Uranium", mass: "238.03", cat: "actinide", g: null, p: 7, config: "[Rn] 5f3 6d1 7s2" },
+            { n: 93, s: "Np", name: "เนปทูเนียม", nameEn: "Neptunium", mass: "(237)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f4 6d1 7s2" },
+            { n: 94, s: "Pu", name: "พลูโทเนียม", nameEn: "Plutonium", mass: "(244)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f6 7s2" },
+            { n: 95, s: "Am", name: "อะเมริเซียม", nameEn: "Americium", mass: "(243)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f7 7s2" },
+            { n: 96, s: "Cm", name: "คูเรียม", nameEn: "Curium", mass: "(247)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f7 6d1 7s2" },
+            { n: 97, s: "Bk", name: "เบอร์คีเลียม", nameEn: "Berkelium", mass: "(247)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f9 7s2" },
+            { n: 98, s: "Cf", name: "แคลิฟอร์เนียม", nameEn: "Californium", mass: "(251)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f10 7s2" },
+            { n: 99, s: "Es", name: "ไอน์สไตเนียม", nameEn: "Einsteinium", mass: "(252)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f11 7s2" },
+            { n: 100, s: "Fm", name: "เฟอร์เมียม", nameEn: "Fermium", mass: "(257)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f12 7s2" },
+            { n: 101, s: "Md", name: "เมนเดลีเวียม", nameEn: "Mendelevium", mass: "(258)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f13 7s2" },
+            { n: 102, s: "No", name: "โนเบเลียม", nameEn: "Nobelium", mass: "(259)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f14 7s2" },
+            { n: 103, s: "Lr", name: "ลอว์เรนเซียม", nameEn: "Lawrencium", mass: "(266)", cat: "actinide", g: null, p: 7, config: "[Rn] 5f14 7s2 7p1" },
+            // Back to Period 7 Main
+            { n: 104, s: "Rf", name: "รัทเทอร์ฟอร์เดียม", nameEn: "Rutherfordium", mass: "(267)", cat: "transition", g: 4, p: 7, config: "[Rn] 5f14 6d2 7s2" },
+            { n: 105, s: "Db", name: "ดุบเนียม", nameEn: "Dubnium", mass: "(268)", cat: "transition", g: 5, p: 7, config: "[Rn] 5f14 6d3 7s2" },
+            { n: 106, s: "Sg", name: "ซีบอร์เกียม", nameEn: "Seaborgium", mass: "(269)", cat: "transition", g: 6, p: 7, config: "[Rn] 5f14 6d4 7s2" },
+            { n: 107, s: "Bh", name: "โบห์เรียม", nameEn: "Bohrium", mass: "(270)", cat: "transition", g: 7, p: 7, config: "[Rn] 5f14 6d5 7s2" },
+            { n: 108, s: "Hs", name: "ฮัสเซียม", nameEn: "Hassium", mass: "(277)", cat: "transition", g: 8, p: 7, config: "[Rn] 5f14 6d6 7s2" },
+            { n: 109, s: "Mt", name: "ไมต์เนเรียม", nameEn: "Meitnerium", mass: "(278)", cat: "unknown", g: 9, p: 7, config: "[Rn] 5f14 6d7 7s2" },
+            { n: 110, s: "Ds", name: "ดาร์มสตัดเทียม", nameEn: "Darmstadtium", mass: "(281)", cat: "unknown", g: 10, p: 7, config: "[Rn] 5f14 6d8 7s2" },
+            { n: 111, s: "Rg", name: "เรินต์เกเนียม", nameEn: "Roentgenium", mass: "(282)", cat: "unknown", g: 11, p: 7, config: "[Rn] 5f14 6d9 7s2" },
+            { n: 112, s: "Cn", name: "โคเพอร์นิเซียม", nameEn: "Copernicium", mass: "(285)", cat: "transition", g: 12, p: 7, config: "[Rn] 5f14 6d10 7s2" },
+            { n: 113, s: "Nh", name: "นิโฮเนียม", nameEn: "Nihonium", mass: "(286)", cat: "unknown", g: 13, p: 7, config: "[Rn] 5f14 6d10 7s2 7p1" },
+            { n: 114, s: "Fl", name: "ฟลีโรเวียม", nameEn: "Flerovium", mass: "(289)", cat: "unknown", g: 14, p: 7, config: "[Rn] 5f14 6d10 7s2 7p2" },
+            { n: 115, s: "Mc", name: "มอสโกเวียม", nameEn: "Moscovium", mass: "(290)", cat: "unknown", g: 15, p: 7, config: "[Rn] 5f14 6d10 7s2 7p3" },
+            { n: 116, s: "Lv", name: "ลิเวอร์มอเรียม", nameEn: "Livermorium", mass: "(293)", cat: "unknown", g: 16, p: 7, config: "[Rn] 5f14 6d10 7s2 7p4" },
+            { n: 117, s: "Ts", name: "เทนเนสซีน", nameEn: "Tennessine", mass: "(294)", cat: "unknown", g: 17, p: 7, config: "[Rn] 5f14 6d10 7s2 7p5" },
+            { n: 118, s: "Og", name: "โอแกนเนสซอน", nameEn: "Oganesson", mass: "(294)", cat: "unknown", g: 18, p: 7, config: "[Rn] 5f14 6d10 7s2 7p6" }
+        ];
+
+        /* Map Category ID to Thai Name */
+        const categoryMap = {
+            "alkali": "โลหะแอลคาไลน์ (Alkali Metal)",
+            "alkaline-earth": "โลหะแอลคาไลน์เอิร์ท (Alkaline Earth Metal)",
+            "transition": "โลหะทรานซิชัน (Transition Metal)",
+            "post-transition": "โลหะหลังทรานซิชัน (Post-Transition Metal)",
+            "metalloid": "ธาตุกึ่งโลหะ (Metalloid)",
+            "nonmetal": "อโลหะ (Reactive Nonmetal)",
+            "halogen": "แฮโลเจน (Halogen)",
+            "noble": "แก๊สมีตระกูล (Noble Gas)",
+            "lanthanide": "แลนทาไนด์ (Lanthanide)",
+            "actinide": "แอกทิไนด์ (Actinide)",
+            "unknown": "สมบัติเคมีไม่ทราบแน่ชัด"
+        };
+
+        const grid = document.getElementById('elementsGrid');
+        const modal = document.getElementById('elementModal');
+        const searchInput = document.getElementById('searchInput');
+
+        function renderElements(data) {
+            // Remove existing element-cells (keep the placeholder spacers)
+            const existingCells = grid.querySelectorAll('.element-js-item');
+            existingCells.forEach(el => el.remove());
+
+            data.forEach(el => {
+                const cell = document.createElement('div');
+                cell.className = `element-cell element-js-item cat-${el.cat}`;
+                
+                // --- GRID PLACEMENT LOGIC ---
+                // Main Table
+                if (el.g && el.p) {
+                    cell.style.gridColumn = el.g;
+                    cell.style.gridRow = el.p;
+                } 
+                // Lanthanides (Row 9 in visual grid, standard convention)
+                else if (el.cat === 'lanthanide') {
+                    // Logic: Lanthanum starts at atomic 57. Place in row 9, starting col 3 (visually aligned)
+                    // Actually, usually placed from col 4 to 18, or 3 to 17. 
+                    // Let's place them starting col 4 to 18 (15 elements).
+                    // Or more commonly: offset 2. 57(La) -> index 0. Col = 3 + 0... wait.
+                    // Let's use simpler logic: 57 is La. 
+                    const offset = el.n - 57; 
+                    cell.style.gridRow = 9; // Spaced out from main table (rows 1-7)
+                    cell.style.gridColumn = 3 + offset; // Start aligning under Group 3
+                    
+                    // Specific fix: if we want them centered or distinct
+                    cell.style.marginTop = "20px"; // Visual separation
+                }
+                // Actinides (Row 10)
+                else if (el.cat === 'actinide') {
+                    const offset = el.n - 89;
+                    cell.style.gridRow = 10;
+                    cell.style.gridColumn = 3 + offset;
+                    cell.style.marginTop = "20px";
+                }
+
+                // Inner HTML
+                cell.innerHTML = `
+                    <span class="atomic-num">${el.n}</span>
+                    <span class="symbol">${el.s}</span>
+                    <span class="name">${el.name}</span>
+                `;
+
+                cell.onclick = () => openModal(el);
+                grid.appendChild(cell);
+            });
+        }
+
+        function calculateParticles(atomicNumber, massStr) {
+            let mass = parseFloat(massStr.replace(/[()]/g, ''));
+            let protons = atomicNumber;
+            let electrons = atomicNumber; // Neutral atom
+            let neutrons = Math.round(mass - protons);
+            return { protons, electrons, neutrons };
+        }
+
+        function openModal(el) {
+            const { protons, electrons, neutrons } = calculateParticles(el.n, el.mass);
+
+            document.getElementById('modalNumber').innerText = el.n;
+            document.getElementById('modalSymbol').innerText = el.s;
+            document.getElementById('modalName').innerText = el.name;
+            document.getElementById('modalNameEn').innerText = el.nameEn;
+            document.getElementById('modalCategory').innerText = categoryMap[el.cat] || el.cat;
+            document.getElementById('modalMass').innerText = el.mass;
+            
+            // Logic for discovery (Mock/Simple logic based on atomic number)
+            let disc = "ยุคโบราณ";
+            if(el.n > 100) disc = "ยุคใหม่ (สังเคราะห์)";
+            else if(el.n > 94) disc = "ศตวรรษที่ 20 (สังเคราะห์)";
+            else if(el.n > 50) disc = "ศตวรรษที่ 18-19";
+            document.getElementById('modalDiscovered').innerText = disc;
+
+            document.getElementById('modalGroup').innerText = el.g ? el.g : "-";
+            document.getElementById('modalPeriod').innerText = el.p;
+
+            document.getElementById('modalProton').innerText = protons;
+            document.getElementById('modalElectron').innerText = electrons;
+            document.getElementById('modalNeutron').innerText = neutrons;
+
+            document.getElementById('modalConfigShort').innerText = el.config;
+            document.getElementById('modalConfigFull').innerText = "Electron Config (Full details)"; // Simplified for UI
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+        });
+
+        // Search & Filter
+        function filterElements() {
+            const query = searchInput.value.toLowerCase();
+            const allCells = document.querySelectorAll('.element-js-item');
+            
+            // To filter in Grid, we can't just hide elements easily without breaking layout flow usually.
+            // But since we use specific Grid Column/Row, hiding them (display: none) works fine! 
+            // The remaining ones stay in their correct slots.
+            
+            allCells.forEach(cell => {
+                const text = cell.innerText.toLowerCase();
+                // We need to match against the data, but cell text is a good proxy
+                if (text.includes(query)) {
+                    cell.style.display = 'flex';
+                    cell.style.opacity = '1';
+                } else {
+                    cell.style.opacity = '0.1'; // Dim instead of hide to keep table shape? 
+                    // Let's try dimming to preserve the table shape context
+                }
+            });
+
+            if(query === '') {
+                 allCells.forEach(cell => {
+                    cell.style.opacity = '1';
+                    cell.style.display = 'flex';
+                 });
+            }
+        }
+
+        function filterByCategory(cat) {
+            const allCells = document.querySelectorAll('.element-js-item');
+            allCells.forEach(cell => {
+                if (cell.classList.contains(`cat-${cat}`)) {
+                    cell.style.opacity = '1';
+                    cell.style.transform = 'scale(1.05)';
+                    cell.style.zIndex = '5';
+                    cell.style.boxShadow = '0 0 10px rgba(255,255,255,0.3)';
+                } else {
+                    cell.style.opacity = '0.1';
+                    cell.style.transform = 'scale(1)';
+                    cell.style.zIndex = '1';
+                    cell.style.boxShadow = 'none';
+                }
+            });
+        }
+
+        function resetFilter() {
+             const allCells = document.querySelectorAll('.element-js-item');
+             allCells.forEach(cell => {
+                cell.style.opacity = '1';
+                cell.style.transform = 'scale(1)';
+                cell.style.zIndex = '1';
+                cell.style.boxShadow = 'none';
+             });
+        }
+
+        searchInput.addEventListener('input', filterElements);
+
+        // Init
+        renderElements(elementsData);
+
+    </script>
+</body>
+
+</html>
